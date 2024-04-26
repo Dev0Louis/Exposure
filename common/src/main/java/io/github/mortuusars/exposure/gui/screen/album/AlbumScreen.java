@@ -133,13 +133,13 @@ public class AlbumScreen extends HandledScreen<AlbumMenu> {
     }
 
     protected Page createPage(Side side, int xOffset) {
-        int x = x + xOffset;
-        int y = y;
+        int x1 = x + xOffset;
+        int y1 = y;
 
-        Rect2i page = new Rect2i(x, y, 149, 188);
-        Rect2i photo = new Rect2i(x + 25, y + 21, 108, 108);
-        Rect2i exposure = new Rect2i(x + 31, y + 27, 96, 96);
-        Rect2i note = new Rect2i(x + 22, y + 133, 114, 27);
+        Rect2i page = new Rect2i(x1, y1, 149, 188);
+        Rect2i photo = new Rect2i(x1 + 25, y1 + 21, 108, 108);
+        Rect2i exposure = new Rect2i(x1 + 31, y1 + 27, 96, 96);
+        Rect2i note = new Rect2i(x1 + 22, y1 + 133, 114, 27);
 
         PhotographSlotButton photographButton = new PhotographSlotButton(exposure, photo.getX(), photo.getY(),
                 photo.getWidth(), photo.getHeight(), 0, 188, 108, TEXTURE, 512, 512,
@@ -372,7 +372,7 @@ public class AlbumScreen extends HandledScreen<AlbumMenu> {
         }
 
         for (Page page : pages) {
-            if (getScreenHandler().isAlbumEditable() && button == InputUtil.MOUSE_BUTTON_RIGHT && page.isMouseOver(page.noteArea, mouseX, mouseY)) {
+            if (getScreenHandler().isAlbumEditable() && button == InputUtil.field_32002 && page.isMouseOver(page.noteArea, mouseX, mouseY)) {
                 page.noteWidget.ifLeft(box -> {
                     box.setText(""); // Clear the note
                 });

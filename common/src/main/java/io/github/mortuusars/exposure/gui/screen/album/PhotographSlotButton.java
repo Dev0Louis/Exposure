@@ -120,7 +120,7 @@ public class PhotographSlotButton extends TexturedButtonWidget {
 
         if (button == InputUtil.field_32000) {
             this.onPress.onPress(this);
-        } else if (button == InputUtil.MOUSE_BUTTON_RIGHT) {
+        } else if (button == InputUtil.field_32002) {
             this.onRightButtonPress.onPress(this);
         } else
             return false;

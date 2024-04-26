@@ -164,8 +164,8 @@ public class ViewfinderControlsScreen extends Screen {
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
-        for(Drawable renderable : this.drawables) {
-            if (renderable instanceof IElementWithTooltip tooltipElement && renderable instanceof ClickableWidget widget
+        for(Drawable drawable : this.drawables) {
+            if (drawable instanceof IElementWithTooltip tooltipElement && drawable instanceof ClickableWidget widget
                 && widget.visible && widget.isSelected()) {
                 tooltipElement.renderToolTip(guiGraphics, mouseX, mouseY);
                 break;

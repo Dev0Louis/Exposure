@@ -24,8 +24,6 @@ public class AlbumSigningScreen extends Screen {
     public static final int SELECTION_UNFOCUSED_COLOR = 0xFFBBBBFF;
 
     @NotNull
-    protected final MinecraftClient minecraft;
-    @NotNull
     protected final PlayerEntity player;
 
     protected final Screen parentScreen;

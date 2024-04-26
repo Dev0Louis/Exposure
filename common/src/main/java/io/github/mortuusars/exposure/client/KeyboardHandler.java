@@ -22,7 +22,7 @@ public class KeyboardHandler {
             return false;
 
         if (minecraft.options.togglePerspectiveKey.matchesKey(key, scanCode)) {
-            if (action == InputUtil.PRESS)
+            if (action == InputUtil.field_31997)
                 return true;
 
             Perspective currentCameraType = minecraft.options.getPerspective();

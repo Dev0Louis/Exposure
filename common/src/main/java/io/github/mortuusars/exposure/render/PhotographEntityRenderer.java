@@ -21,7 +21,7 @@ public class PhotographEntityRenderer<T extends PhotographEntity> extends Entity
     }
 
     @Override
-    public @NotNull Identifier getTextureLocation(@NotNull T pEntity) {
+    public @NotNull Identifier getTexture(@NotNull T pEntity) {
         return PlayerScreenHandler.BLOCK_ATLAS_TEXTURE;
     }
 

@@ -12,7 +12,7 @@ public class MouseHandler {
 
     public static boolean handleMouseButtonPress(int button, int action, int modifiers) {
         if (button >= 0 && button < heldMouseButtons.length)
-            heldMouseButtons[button] = action == InputUtil.PRESS;
+            heldMouseButtons[button] = action == InputUtil.field_31997;
 
         if (MinecraftClient.getInstance().player != null && CameraInHand.isActive(MinecraftClient.getInstance().player)
                 && ExposureClient.getViewfinderControlsKey().matchesMouse(button)
