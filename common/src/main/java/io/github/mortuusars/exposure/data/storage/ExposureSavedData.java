@@ -3,12 +3,12 @@ package io.github.mortuusars.exposure.data.storage;
 import com.google.common.base.Preconditions;
 import com.mojang.logging.LogUtils;
 import io.github.mortuusars.exposure.camera.infrastructure.FilmType;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.world.PersistentState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ExposureSavedData extends SavedData {
+public class ExposureSavedData extends PersistentState {
     public static final String TYPE_PROPERTY = "Type";
     public static final String WAS_PRINTED_PROPERTY = "WasPrinted";
     public static final String TIMESTAMP_PROPERTY = "Timestamp";
@@ -16,9 +16,9 @@ public class ExposureSavedData extends SavedData {
     private final int width;
     private final int height;
     private final byte[] pixels;
-    private final CompoundTag properties;
+    private final NbtCompound properties;
 
-    public ExposureSavedData(int width, int height, byte[] pixels, CompoundTag properties) {
+    public ExposureSavedData(int width, int height, byte[] pixels, NbtCompound properties) {
         Preconditions.checkArgument(width >= 0, "Width cannot be negative.");
         Preconditions.checkArgument(height >= 0, "Height cannot be negative.");
 
@@ -54,7 +54,7 @@ public class ExposureSavedData extends SavedData {
         pixels[y * width + x] = value;
     }
 
-    public CompoundTag getProperties() {
+    public NbtCompound getProperties() {
         return properties;
     }
 
@@ -64,7 +64,7 @@ public class ExposureSavedData extends SavedData {
     }
 
     @Override
-    public @NotNull CompoundTag save(CompoundTag compoundTag) {
+    public @NotNull NbtCompound writeNbt(NbtCompound compoundTag) {
         compoundTag.putInt("width", width);
         compoundTag.putInt("height", height);
         compoundTag.putByteArray("pixels", pixels);
@@ -72,8 +72,8 @@ public class ExposureSavedData extends SavedData {
         return compoundTag;
     }
 
-    public static ExposureSavedData load(CompoundTag compoundTag) {
-        CompoundTag properties = compoundTag.getCompound("properties");
+    public static ExposureSavedData load(NbtCompound compoundTag) {
+        NbtCompound properties = compoundTag.getCompound("properties");
 
         // Backwards compatibility:
         if (!properties.contains(TYPE_PROPERTY)) {

@@ -2,17 +2,17 @@ package io.github.mortuusars.exposure.data.transfer;
 
 import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
 import io.github.mortuusars.exposure.network.packet.ExposureDataPartPacket;
-import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiConsumer;
+import net.minecraft.entity.player.PlayerEntity;
 
 public class ExposureSender implements IExposureSender {
     private static final int PART_SIZE = 30_000;
 
-    private final BiConsumer<ExposureDataPartPacket, @Nullable Player> packetSender;
+    private final BiConsumer<ExposureDataPartPacket, @Nullable PlayerEntity> packetSender;
 
-    public ExposureSender(BiConsumer<ExposureDataPartPacket, @Nullable Player> packetSender) {
+    public ExposureSender(BiConsumer<ExposureDataPartPacket, @Nullable PlayerEntity> packetSender) {
         this.packetSender = packetSender;
     }
 
@@ -21,7 +21,7 @@ public class ExposureSender implements IExposureSender {
     }
 
     @Override
-    public void sendTo(@Nullable Player player, String id, ExposureSavedData exposureData) {
+    public void sendTo(@Nullable PlayerEntity player, String id, ExposureSavedData exposureData) {
         byte[][] parts = splitToParts(exposureData.getPixels(), PART_SIZE);
         int offset = 0;
 

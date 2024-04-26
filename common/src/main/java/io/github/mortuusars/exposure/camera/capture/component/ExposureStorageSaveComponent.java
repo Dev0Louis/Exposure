@@ -2,7 +2,7 @@ package io.github.mortuusars.exposure.camera.capture.component;
 
 import io.github.mortuusars.exposure.ExposureClient;
 import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtCompound;
 
 public class ExposureStorageSaveComponent implements ICaptureComponent {
     private final String exposureId;
@@ -14,7 +14,7 @@ public class ExposureStorageSaveComponent implements ICaptureComponent {
     }
 
     @Override
-    public boolean save(byte[] pixels, int width, int height, CompoundTag properties) {
+    public boolean save(byte[] pixels, int width, int height, NbtCompound properties) {
         long unixTime = System.currentTimeMillis() / 1000L;
         properties.putLong(ExposureSavedData.TIMESTAMP_PROPERTY, unixTime);
 

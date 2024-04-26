@@ -3,31 +3,31 @@ package io.github.mortuusars.exposure.sound;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.client.PlayOnePerPlayerSoundS2CP;
 import io.github.mortuusars.exposure.network.packet.client.StopOnePerPlayerSoundS2CP;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 
 public class OnePerPlayerSounds {
-    public static void play(Player sourcePlayer, SoundEvent soundEvent, SoundSource source, float volume, float pitch) {
-        if (sourcePlayer.level().isClientSide) {
+    public static void play(PlayerEntity sourcePlayer, SoundEvent soundEvent, SoundCategory source, float volume, float pitch) {
+        if (sourcePlayer.getWorld().isClient) {
             OnePerPlayerSoundsClient.play(sourcePlayer, soundEvent, source, volume, pitch);
         }
-        else if (sourcePlayer instanceof ServerPlayer serverSourcePlayer) {
-            Packets.sendToOtherClients(new PlayOnePerPlayerSoundS2CP(serverSourcePlayer.getUUID(),
+        else if (sourcePlayer instanceof ServerPlayerEntity serverSourcePlayer) {
+            Packets.sendToOtherClients(new PlayOnePerPlayerSoundS2CP(serverSourcePlayer.getUuid(),
                             soundEvent,source, volume, pitch),
                     serverSourcePlayer,
-                    serverPlayer -> serverSourcePlayer.distanceTo(serverPlayer) < soundEvent.getRange(1f));
+                    serverPlayer -> serverSourcePlayer.distanceTo(serverPlayer) < soundEvent.getDistanceToTravel(1f));
         }
     }
 
-    public static void stop(Player sourcePlayer, SoundEvent soundEvent) {
-        if (sourcePlayer.level().isClientSide) {
+    public static void stop(PlayerEntity sourcePlayer, SoundEvent soundEvent) {
+        if (sourcePlayer.getWorld().isClient) {
             OnePerPlayerSoundsClient.stop(sourcePlayer, soundEvent);
         }
-        else if (sourcePlayer instanceof ServerPlayer serverSourcePlayer) {
-            Packets.sendToOtherClients(new StopOnePerPlayerSoundS2CP(serverSourcePlayer.getUUID(), soundEvent),
-                    serverSourcePlayer, serverPlayer -> serverSourcePlayer.distanceTo(serverPlayer) < soundEvent.getRange(1f));
+        else if (sourcePlayer instanceof ServerPlayerEntity serverSourcePlayer) {
+            Packets.sendToOtherClients(new StopOnePerPlayerSoundS2CP(serverSourcePlayer.getUuid(), soundEvent),
+                    serverSourcePlayer, serverPlayer -> serverSourcePlayer.distanceTo(serverPlayer) < soundEvent.getDistanceToTravel(1f));
         }
     }
 }

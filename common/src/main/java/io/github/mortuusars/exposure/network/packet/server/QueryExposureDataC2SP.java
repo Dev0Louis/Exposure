@@ -7,32 +7,32 @@ import io.github.mortuusars.exposure.ExposureServer;
 import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
 import io.github.mortuusars.exposure.network.PacketDirection;
 import io.github.mortuusars.exposure.network.packet.IPacket;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Identifier;
 
 public record QueryExposureDataC2SP(String id) implements IPacket {
-    public static final ResourceLocation ID = Exposure.resource("query_exposure_data");
+    public static final Identifier ID = Exposure.resource("query_exposure_data");
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return ID;
     }
 
-    public FriendlyByteBuf toBuffer(FriendlyByteBuf buffer) {
-        buffer.writeUtf(id);
+    public PacketByteBuf toBuffer(PacketByteBuf buffer) {
+        buffer.writeString(id);
         return buffer;
     }
 
-    public static QueryExposureDataC2SP fromBuffer(FriendlyByteBuf buffer) {
-        return new QueryExposureDataC2SP(buffer.readUtf());
+    public static QueryExposureDataC2SP fromBuffer(PacketByteBuf buffer) {
+        return new QueryExposureDataC2SP(buffer.readString());
     }
 
     @Override
-    public boolean handle(PacketDirection direction, @Nullable Player player) {
+    public boolean handle(PacketDirection direction, @Nullable PlayerEntity player) {
         Preconditions.checkArgument(player != null, "Cannot handle QueryExposureDataPacket: Player was null");
 
         Optional<ExposureSavedData> exposureSavedData = ExposureServer.getExposureStorage().getOrQuery(id);

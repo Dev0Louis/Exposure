@@ -5,71 +5,71 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.camera.infrastructure.FocalRange;
 import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.menu.CameraAttachmentsMenu;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 
-public class CameraAttachmentsScreen extends AbstractContainerScreen<CameraAttachmentsMenu> {
-    public static final ResourceLocation TEXTURE = Exposure.resource("textures/gui/camera_attachments.png");
+public class CameraAttachmentsScreen extends HandledScreen<CameraAttachmentsMenu> {
+    public static final Identifier TEXTURE = Exposure.resource("textures/gui/camera_attachments.png");
 
-    public CameraAttachmentsScreen(CameraAttachmentsMenu menu, Inventory playerInventory, Component title) {
+    public CameraAttachmentsScreen(CameraAttachmentsMenu menu, PlayerInventory playerInventory, Text title) {
         super(menu, playerInventory, title);
     }
 
     @Override
     protected void init() {
-        this.imageHeight = 185;
-        inventoryLabelY = this.imageHeight - 94;
+        this.backgroundHeight = 185;
+        playerInventoryTitleY = this.backgroundHeight - 94;
         super.init();
     }
 
     @Override
-    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
-        this.renderTooltip(guiGraphics, mouseX, mouseY);
+        this.drawMouseoverTooltip(guiGraphics, mouseX, mouseY);
     }
 
     @Override
-    protected void renderBg(@NotNull GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+    protected void drawBackground(@NotNull DrawContext guiGraphics, float partialTick, int mouseX, int mouseY) {
+        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+        guiGraphics.drawTexture(TEXTURE, this.x, this.y, 0, 0, this.backgroundWidth, this.backgroundHeight);
 
-        Slot filmSlot = menu.slots.get(CameraItem.FILM_ATTACHMENT.slot());
-        if (!filmSlot.hasItem())
-            guiGraphics.blit(TEXTURE, leftPos + filmSlot.x - 1, topPos + filmSlot.y - 1, 238, 0, 18, 18);
+        Slot filmSlot = handler.slots.get(CameraItem.FILM_ATTACHMENT.slot());
+        if (!filmSlot.hasStack())
+            guiGraphics.drawTexture(TEXTURE, x + filmSlot.x - 1, y + filmSlot.y - 1, 238, 0, 18, 18);
 
-        Slot flashSlot = menu.slots.get(CameraItem.FLASH_ATTACHMENT.slot());
-        if (!flashSlot.hasItem())
-            guiGraphics.blit(TEXTURE, leftPos + flashSlot.x - 1, topPos + flashSlot.y - 1, 238, 18, 18, 18);
+        Slot flashSlot = handler.slots.get(CameraItem.FLASH_ATTACHMENT.slot());
+        if (!flashSlot.hasStack())
+            guiGraphics.drawTexture(TEXTURE, x + flashSlot.x - 1, y + flashSlot.y - 1, 238, 18, 18, 18);
         else
-            guiGraphics.blit(TEXTURE, leftPos + 99, topPos + 7, 0, 185, 24, 28);
+            guiGraphics.drawTexture(TEXTURE, x + 99, y + 7, 0, 185, 24, 28);
 
-        Slot lensSlot = menu.slots.get(CameraItem.LENS_ATTACHMENT.slot());
-        boolean hasLens = lensSlot.hasItem();
+        Slot lensSlot = handler.slots.get(CameraItem.LENS_ATTACHMENT.slot());
+        boolean hasLens = lensSlot.hasStack();
         if (hasLens)
-            guiGraphics.blit(TEXTURE, leftPos + 103, topPos + 49, 24, 185, 31, 35);
+            guiGraphics.drawTexture(TEXTURE, x + 103, y + 49, 24, 185, 31, 35);
         else
-            guiGraphics.blit(TEXTURE, leftPos + lensSlot.x - 1, topPos + lensSlot.y - 1, 238, 36, 18, 18);
+            guiGraphics.drawTexture(TEXTURE, x + lensSlot.x - 1, y + lensSlot.y - 1, 238, 36, 18, 18);
 
-        Slot filterSlot = menu.slots.get(CameraItem.FILTER_ATTACHMENT.slot());
-        if (filterSlot.hasItem()) {
+        Slot filterSlot = handler.slots.get(CameraItem.FILTER_ATTACHMENT.slot());
+        if (filterSlot.hasStack()) {
             int x = hasLens ? 116 : 106;
             int y = hasLens ? 58 : 53;
 
@@ -77,36 +77,36 @@ public class CameraAttachmentsScreen extends AbstractContainerScreen<CameraAttac
             float g = 1f;
             float b = 1f;
 
-            ResourceLocation key = BuiltInRegistries.ITEM.getKey(filterSlot.getItem().getItem());
+            Identifier key = Registries.ITEM.getId(filterSlot.getStack().getItem());
             if (key.getNamespace().equals("minecraft") && key.getPath().contains("_stained_glass_pane")) {
                 String colorString = key.getPath().replace("_stained_glass_pane", "");
                 DyeColor color = DyeColor.byName(colorString, DyeColor.WHITE);
                 int rgb = color.getFireworkColor();
-                r = Mth.clamp(((rgb >> 16) & 0xFF) / 255f, 0f, 1f);
-                g = Mth.clamp((((rgb >> 8) & 0xFF) / 255f), 0f, 1f);
-                b = Mth.clamp((rgb & 0xFF) / 255f, 0f, 1f);
+                r = MathHelper.clamp(((rgb >> 16) & 0xFF) / 255f, 0f, 1f);
+                g = MathHelper.clamp((((rgb >> 8) & 0xFF) / 255f), 0f, 1f);
+                b = MathHelper.clamp((rgb & 0xFF) / 255f, 0f, 1f);
             }
 
             RenderSystem.setShaderColor(r, g, b, 1f);
 
-            if (!filterSlot.getItem().is(Items.GLASS_PANE))
-                guiGraphics.blit(TEXTURE, leftPos + x, topPos + y, 55, 185, 15, 23); // Opaque part
+            if (!filterSlot.getStack().isOf(Items.GLASS_PANE))
+                guiGraphics.drawTexture(TEXTURE, x + x, y + y, 55, 185, 15, 23); // Opaque part
 
-            guiGraphics.blit(TEXTURE, leftPos + x, topPos + y, 70, 185, 15, 23); // Glares
+            guiGraphics.drawTexture(TEXTURE, x + x, y + y, 70, 185, 15, 23); // Glares
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         } else {
-            guiGraphics.blit(TEXTURE, leftPos + filterSlot.x - 1, topPos + filterSlot.y - 1, 238, 54, 18, 18);
+            guiGraphics.drawTexture(TEXTURE, x + filterSlot.x - 1, y + filterSlot.y - 1, 238, 54, 18, 18);
         }
 
         RenderSystem.disableBlend();
     }
 
     @Override
-    protected @NotNull List<Component> getTooltipFromContainerItem(ItemStack stack) {
-        List<Component> tooltip = super.getTooltipFromContainerItem(stack);
-        if (stack.is(Exposure.Tags.Items.LENSES) && hoveredSlot != null && hoveredSlot.getItem().equals(stack)) {
-            tooltip.add(Component.translatable("gui.exposure.viewfinder.focal_length", FocalRange.ofStack(stack).getSerializedName())
-                    .withStyle(ChatFormatting.GOLD));
+    protected @NotNull List<Text> getTooltipFromItem(ItemStack stack) {
+        List<Text> tooltip = super.getTooltipFromItem(stack);
+        if (stack.isIn(Exposure.Tags.Items.LENSES) && focusedSlot != null && focusedSlot.getStack().equals(stack)) {
+            tooltip.add(Text.translatable("gui.exposure.viewfinder.focal_length", FocalRange.ofStack(stack).asString())
+                    .formatted(Formatting.GOLD));
         }
         return tooltip;
     }

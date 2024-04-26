@@ -15,11 +15,11 @@ import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -27,14 +27,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class PhotographPrintingCategory implements IRecipeCategory<PhotographPrintingJeiRecipe> {
-    private static final ResourceLocation TEXTURE = Exposure.resource("textures/gui/jei/photograph_printing.png");
-    private final Component title;
+    private static final Identifier TEXTURE = Exposure.resource("textures/gui/jei/photograph_printing.png");
+    private final Text title;
     private final IDrawable background;
     private final IDrawable icon;
     private final IDrawableStatic filmDrawable;
 
     public PhotographPrintingCategory(IGuiHelper guiHelper) {
-        title = Component.translatable("jei.exposure.photograph_printing.title");
+        title = Text.translatable("jei.exposure.photograph_printing.title");
         background = guiHelper.createDrawable(TEXTURE, 0, 0, 170, 80);
         icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(Exposure.Items.LIGHTROOM.get()));
 
@@ -50,7 +50,7 @@ public class PhotographPrintingCategory implements IRecipeCategory<PhotographPri
                 .setSlotName("Film");
 
 
-        List<ItemStack> papers = BuiltInRegistries.ITEM.getTag(Exposure.Tags.Items.PHOTO_PAPERS)
+        List<ItemStack> papers = Registries.ITEM.getEntryList(Exposure.Tags.Items.PHOTO_PAPERS)
                 .map(holders -> holders.stream()
                         .map(itemHolder -> new ItemStack(itemHolder.value())).collect(Collectors.toList()))
                 .orElse(Collections.emptyList());
@@ -60,7 +60,7 @@ public class PhotographPrintingCategory implements IRecipeCategory<PhotographPri
                 .setSlotName("Paper");
 
         if (recipe.getFilmType() == FilmType.COLOR) {
-            List<ItemStack> cyanDyes = BuiltInRegistries.ITEM.getTag(Exposure.Tags.Items.CYAN_PRINTING_DYES)
+            List<ItemStack> cyanDyes = Registries.ITEM.getEntryList(Exposure.Tags.Items.CYAN_PRINTING_DYES)
                     .map(holders -> holders.stream()
                             .map(itemHolder -> new ItemStack(itemHolder.value())).collect(Collectors.toList()))
                     .orElse(Collections.emptyList());
@@ -69,7 +69,7 @@ public class PhotographPrintingCategory implements IRecipeCategory<PhotographPri
                     .addItemStacks(cyanDyes)
                     .setSlotName("Cyan");
 
-            List<ItemStack> magentaDyes = BuiltInRegistries.ITEM.getTag(Exposure.Tags.Items.MAGENTA_PRINTING_DYES)
+            List<ItemStack> magentaDyes = Registries.ITEM.getEntryList(Exposure.Tags.Items.MAGENTA_PRINTING_DYES)
                     .map(holders -> holders.stream()
                             .map(itemHolder -> new ItemStack(itemHolder.value())).collect(Collectors.toList()))
                     .orElse(Collections.emptyList());
@@ -78,7 +78,7 @@ public class PhotographPrintingCategory implements IRecipeCategory<PhotographPri
                     .addItemStacks(magentaDyes)
                     .setSlotName("Magenta");
 
-            List<ItemStack> yellowDyes = BuiltInRegistries.ITEM.getTag(Exposure.Tags.Items.YELLOW_PRINTING_DYES)
+            List<ItemStack> yellowDyes = Registries.ITEM.getEntryList(Exposure.Tags.Items.YELLOW_PRINTING_DYES)
                     .map(holders -> holders.stream()
                             .map(itemHolder -> new ItemStack(itemHolder.value())).collect(Collectors.toList()))
                     .orElse(Collections.emptyList());
@@ -88,7 +88,7 @@ public class PhotographPrintingCategory implements IRecipeCategory<PhotographPri
                     .setSlotName("Yellow");
         }
 
-        List<ItemStack> blackDyes = BuiltInRegistries.ITEM.getTag(Exposure.Tags.Items.BLACK_PRINTING_DYES)
+        List<ItemStack> blackDyes = Registries.ITEM.getEntryList(Exposure.Tags.Items.BLACK_PRINTING_DYES)
                 .map(holders -> holders.stream()
                         .map(itemHolder -> new ItemStack(itemHolder.value())).collect(Collectors.toList()))
                 .orElse(Collections.emptyList());
@@ -102,7 +102,7 @@ public class PhotographPrintingCategory implements IRecipeCategory<PhotographPri
     }
 
     @Override
-    public void draw(PhotographPrintingJeiRecipe recipe, @NotNull IRecipeSlotsView recipeSlotsView, @NotNull GuiGraphics guiGraphics, double mouseX, double mouseY) {
+    public void draw(PhotographPrintingJeiRecipe recipe, @NotNull IRecipeSlotsView recipeSlotsView, @NotNull DrawContext guiGraphics, double mouseX, double mouseY) {
         if (recipe.getFilmType() == FilmType.COLOR)
             RenderSystem.setShaderColor(1.1F, 0.86F, 0.66F, 1.0F);
         filmDrawable.draw(guiGraphics);
@@ -114,7 +114,7 @@ public class PhotographPrintingCategory implements IRecipeCategory<PhotographPri
     }
 
     @Override
-    public @NotNull Component getTitle() {
+    public @NotNull Text getTitle() {
         return title;
     }
 

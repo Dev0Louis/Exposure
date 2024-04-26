@@ -2,11 +2,10 @@ package io.github.mortuusars.exposure.camera.infrastructure;
 
 import com.google.common.base.Preconditions;
 import com.mojang.logging.LogUtils;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
-
 import java.util.Objects;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.network.PacketByteBuf;
 
 public class ShutterSpeed {
     public static final ShutterSpeed DEFAULT = new ShutterSpeed("60");
@@ -51,14 +50,14 @@ public class ShutterSpeed {
         return (float) (Math.log(valueMilliseconds / relative.getMilliseconds()) / Math.log(2));
     }
 
-    public CompoundTag save(CompoundTag tag) {
+    public NbtCompound save(NbtCompound tag) {
         tag.putString("ShutterSpeed", text);
         return tag;
     }
 
-    public static ShutterSpeed loadOrDefault(CompoundTag tag) {
+    public static ShutterSpeed loadOrDefault(NbtCompound tag) {
         try {
-            if (tag.contains("ShutterSpeed", Tag.TAG_STRING)) {
+            if (tag.contains("ShutterSpeed", NbtElement.STRING_TYPE)) {
                 String shutterSpeed = tag.getString("ShutterSpeed");
                 return new ShutterSpeed(shutterSpeed);
             }
@@ -70,12 +69,12 @@ public class ShutterSpeed {
         return DEFAULT;
     }
     
-    public void toBuffer(FriendlyByteBuf buffer) {
-        buffer.writeUtf(text);
+    public void toBuffer(PacketByteBuf buffer) {
+        buffer.writeString(text);
     }
 
-    public static ShutterSpeed fromBuffer(FriendlyByteBuf buffer) {
-        return new ShutterSpeed(buffer.readUtf());
+    public static ShutterSpeed fromBuffer(PacketByteBuf buffer) {
+        return new ShutterSpeed(buffer.readString());
     }
 
     @Override

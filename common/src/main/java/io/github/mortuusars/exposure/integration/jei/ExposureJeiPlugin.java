@@ -17,10 +17,10 @@ import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.*;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.util.math.Rect2i;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -32,10 +32,10 @@ public class ExposureJeiPlugin implements IModPlugin {
     public static final RecipeType<PhotographStackingJeiRecipe> PHOTOGRAPH_STACKING_RECIPE_TYPE =
             RecipeType.create(Exposure.ID, "photograph_stacking", PhotographStackingJeiRecipe.class);
 
-    private static final ResourceLocation ID = Exposure.resource("jei_plugin");
+    private static final Identifier ID = Exposure.resource("jei_plugin");
 
     @Override
-    public @NotNull ResourceLocation getPluginUid() {
+    public @NotNull Identifier getPluginUid() {
         return ID;
     }
 
@@ -80,8 +80,8 @@ public class ExposureJeiPlugin implements IModPlugin {
             @Override
             public @NotNull List<Rect2i> getGuiExtraAreas(@NotNull AlbumScreen containerScreen) {
                 return List.of(new Rect2i(0, 0,
-                        Minecraft.getInstance().getWindow().getGuiScaledWidth(),
-                        Minecraft.getInstance().getWindow().getGuiScaledHeight()));
+                        MinecraftClient.getInstance().getWindow().getScaledWidth(),
+                        MinecraftClient.getInstance().getWindow().getScaledHeight()));
             }
         });
     }

@@ -1,20 +1,20 @@
 package io.github.mortuusars.exposure.sound.instance;
 
 import io.github.mortuusars.exposure.item.CameraItem;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.sound.MovingSoundInstance;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.random.Random;
 
-public class ShutterTimerTickingSoundInstance extends AbstractTickableSoundInstance {
-    private final Player player;
+public class ShutterTimerTickingSoundInstance extends MovingSoundInstance {
+    private final PlayerEntity player;
     private int delay = 2;
     private final float originalVolume;
-    public ShutterTimerTickingSoundInstance(Player player, SoundEvent soundEvent, SoundSource soundSource, float volume, float pitch, RandomSource random) {
+    public ShutterTimerTickingSoundInstance(PlayerEntity player, SoundEvent soundEvent, SoundCategory soundSource, float volume, float pitch, Random random) {
         super(soundEvent, soundSource, random);
         this.player = player;
         this.x = player.getX();
@@ -23,7 +23,7 @@ public class ShutterTimerTickingSoundInstance extends AbstractTickableSoundInsta
         this.volume = volume;
         this.originalVolume = volume;
         this.pitch = pitch;
-        this.looping = true;
+        this.repeat = true;
     }
 
     @Override
@@ -32,27 +32,27 @@ public class ShutterTimerTickingSoundInstance extends AbstractTickableSoundInsta
         this.y = player.getY();
         this.z = player.getZ();
 
-        if (hasShutterOpen(player.getMainHandItem()) || hasShutterOpen(player.getOffhandItem())) {
-            volume = Mth.lerp(0.3f, volume, originalVolume);
+        if (hasShutterOpen(player.getMainHandStack()) || hasShutterOpen(player.getOffHandStack())) {
+            volume = MathHelper.lerp(0.3f, volume, originalVolume);
             return;
         }
         else
-            volume = Mth.lerp(0.2f, volume, originalVolume * 0.3f);
+            volume = MathHelper.lerp(0.2f, volume, originalVolume * 0.3f);
 
         if (!hasCameraWithOpenShutterInInventory(player)) {
             // In multiplayer other players camera photo is not updated in time (sometimes)
             // This causes the sound to stop instantly
-            if (!player.equals(Minecraft.getInstance().player) && delay > 0) {
-                delay--;
+            if (!player.equals(MinecraftClient.getInstance().player) && repeatDelay > 0) {
+                repeatDelay--;
                 return;
             }
 
-            this.stop();
+            this.setDone();
         }
     }
 
-    private boolean hasCameraWithOpenShutterInInventory(Player player) {
-        for (ItemStack stack : player.getInventory().items) {
+    private boolean hasCameraWithOpenShutterInInventory(PlayerEntity player) {
+        for (ItemStack stack : player.getInventory().main) {
             if (hasShutterOpen(stack))
                 return true;
         }

@@ -20,15 +20,13 @@ dependencies {
     // Remove the next line if you don't want to depend on the API
     // modApi "dev.architectury:architectury:${rootProject.architectury_version}"
 
-    modCompileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-
     modCompileOnly("me.shedaniel.cloth:cloth-config-fabric:${cloth_config_version}") {
         exclude group: 'net.fabricmc.fabric-api'
     }
 
     modCompileOnly("curse.maven:architectury-${architectury_cf_version}")
 
-    api "fuzs.forgeconfigapiport:forgeconfigapiport-common:${forge_config_api_version}"
+    modApi "fuzs.forgeconfigapiport:forgeconfigapiport-common:${forge_config_api_version}"
 }
 
 publishing {

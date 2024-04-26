@@ -5,20 +5,20 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.client.ClearRenderingCacheS2CP;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 public class DebugCommand {
-    public static LiteralArgumentBuilder<CommandSourceStack> get() {
-        return Commands.literal("debug")
-                .then(Commands.literal("clearRenderingCache")
+    public static LiteralArgumentBuilder<ServerCommandSource> get() {
+        return CommandManager.literal("debug")
+                .then(CommandManager.literal("clearRenderingCache")
                         .executes(DebugCommand::clearRenderingCache));
     }
 
-    private static int clearRenderingCache(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-        CommandSourceStack stack = context.getSource();
-        ServerPlayer player = stack.getPlayerOrException();
+    private static int clearRenderingCache(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        ServerCommandSource stack = context.getSource();
+        ServerPlayerEntity player = stack.getPlayerOrThrow();
         Packets.sendToClient(new ClearRenderingCacheS2CP(), player);
         return 0;
     }

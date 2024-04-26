@@ -3,15 +3,15 @@ package io.github.mortuusars.exposure.fabric;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.impl.FabricLoaderImpl;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ShearsItem;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ShearsItem;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,26 +23,26 @@ public class PlatformHelperImpl {
         return stack.getItem() instanceof ShearsItem;
     }
 
-    public static void openMenu(ServerPlayer serverPlayer, MenuProvider menuProvider, Consumer<FriendlyByteBuf> extraDataWriter) {
+    public static void openMenu(ServerPlayerEntity serverPlayer, NamedScreenHandlerFactory menuProvider, Consumer<PacketByteBuf> extraDataWriter) {
         ExtendedScreenHandlerFactory extendedScreenHandlerFactory = new ExtendedScreenHandlerFactory() {
             @Nullable
             @Override
-            public AbstractContainerMenu createMenu(int i, @NotNull Inventory inventory, @NotNull Player player) {
+            public ScreenHandler createMenu(int i, @NotNull PlayerInventory inventory, @NotNull PlayerEntity player) {
                 return menuProvider.createMenu(i, inventory, player);
             }
 
             @Override
-            public @NotNull Component getDisplayName() {
+            public @NotNull Text getDisplayName() {
                 return menuProvider.getDisplayName();
             }
 
             @Override
-            public void writeScreenOpeningData(ServerPlayer player, FriendlyByteBuf buffer) {
+            public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buffer) {
                 extraDataWriter.accept(buffer);
             }
         };
 
-        serverPlayer.openMenu(extendedScreenHandlerFactory);
+        serverPlayer.openHandledScreen(extendedScreenHandlerFactory);
     }
 
     public static List<String> getDefaultSpoutDevelopmentColorSequence() {

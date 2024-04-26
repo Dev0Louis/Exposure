@@ -1,13 +1,13 @@
 package io.github.mortuusars.exposure.util;
 
 import io.github.mortuusars.exposure.Exposure;
-import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.StringIdentifiable;
 
-public enum ColorChannel implements StringRepresentable {
+public enum ColorChannel implements StringIdentifiable {
     RED(0xFFD8523E),
     GREEN(0xFF7BC64B),
     BLUE(0xFF4E73CE);
@@ -23,11 +23,11 @@ public enum ColorChannel implements StringRepresentable {
     }
 
     public static Optional<ColorChannel> fromStack(ItemStack stack) {
-        if (stack.is(Exposure.Tags.Items.RED_FILTERS))
+        if (stack.isIn(Exposure.Tags.Items.RED_FILTERS))
             return Optional.of(RED);
-        else if (stack.is(Exposure.Tags.Items.GREEN_FILTERS))
+        else if (stack.isIn(Exposure.Tags.Items.GREEN_FILTERS))
             return Optional.of(GREEN);
-        else if (stack.is(Exposure.Tags.Items.BLUE_FILTERS))
+        else if (stack.isIn(Exposure.Tags.Items.BLUE_FILTERS))
             return Optional.of(BLUE);
         else
             return Optional.empty();
@@ -35,7 +35,7 @@ public enum ColorChannel implements StringRepresentable {
 
     public static ColorChannel fromStringOrDefault(String serializedName, ColorChannel defaultValue) {
         for (ColorChannel value : values()) {
-            if (value.getSerializedName().equals(serializedName))
+            if (value.asString().equals(serializedName))
                 return value;
         }
         return defaultValue;
@@ -43,14 +43,14 @@ public enum ColorChannel implements StringRepresentable {
 
     public static Optional<ColorChannel> fromString(String serializedName) {
         for (ColorChannel value : values()) {
-            if (value.getSerializedName().equals(serializedName))
+            if (value.asString().equals(serializedName))
                 return Optional.of(value);
         }
         return Optional.empty();
     }
 
     @Override
-    public @NotNull String getSerializedName() {
+    public @NotNull String asString() {
         return toString().toLowerCase();
     }
 }

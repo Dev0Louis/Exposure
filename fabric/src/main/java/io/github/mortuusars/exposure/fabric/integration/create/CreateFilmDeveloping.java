@@ -6,15 +6,15 @@ import io.github.fabricators_of_create.porting_lib.fluids.FluidStack;
 import io.github.mortuusars.exposure.Config;
 import io.github.mortuusars.exposure.camera.infrastructure.FilmType;
 import io.github.mortuusars.exposure.item.FilmRollItem;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.TagParser;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.StringNbtReader;
 
 public class CreateFilmDeveloping {
     public static final String CURRENT_STEP_TAG = "CurrentDevelopingStep";
@@ -50,7 +50,7 @@ public class CreateFilmDeveloping {
 
         List<FluidStack> fillingSteps = getFillingSteps(filmRollItem.getType());
 
-        CompoundTag tag = stack.getTag();
+        NbtCompound tag = stack.getNbt();
         if (tag == null || tag.isEmpty())
             return fillingSteps.get(0);
 
@@ -79,27 +79,27 @@ public class CreateFilmDeveloping {
         if (requiredAmount == 0 || nextStep == fillingSteps.size()) {
             result = filmType.createDevelopedItemStack();
 
-            if (stack.getTag() != null)
-                result.setTag(stack.getOrCreateTag().copy());
+            if (stack.getNbt() != null)
+                result.setNbt(stack.getOrCreateNbt().copy());
 
-            result.getOrCreateTag().remove(CURRENT_STEP_TAG);
+            result.getOrCreateNbt().remove(CURRENT_STEP_TAG);
         }
         else {
             result = filmType.createItemStack();
 
-            if (stack.getTag() != null)
-                result.setTag(stack.getOrCreateTag().copy());
+            if (stack.getNbt() != null)
+                result.setNbt(stack.getOrCreateNbt().copy());
 
-            result.getOrCreateTag().putInt(CURRENT_STEP_TAG, nextStep);
+            result.getOrCreateNbt().putInt(CURRENT_STEP_TAG, nextStep);
         }
 
         availableFluid.shrink(requiredAmount);
-        stack.shrink(1);
+        stack.decrement(1);
         return result;
     }
 
     public static int getNextStep(ItemStack stack) {
-        return stack.getTag() != null ? stack.getTag().getInt(CURRENT_STEP_TAG) + 1 : 1;
+        return stack.getNbt() != null ? stack.getNbt().getInt(CURRENT_STEP_TAG) + 1 : 1;
     }
 
     public static void clearCachedData() {
@@ -120,7 +120,7 @@ public class CreateFilmDeveloping {
 
     private static @Nullable FluidStack getFluidStack(String serializedString) {
         try {
-            CompoundTag tag = TagParser.parseTag(serializedString);
+            NbtCompound tag = StringNbtReader.parse(serializedString);
             FluidStack fluidStack = FluidStack.loadFluidStackFromNBT(tag);
             if (!fluidStack.isEmpty())
                 return fluidStack;

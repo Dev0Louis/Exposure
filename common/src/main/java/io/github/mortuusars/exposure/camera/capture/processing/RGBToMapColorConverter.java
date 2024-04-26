@@ -1,11 +1,10 @@
 package io.github.mortuusars.exposure.camera.capture.processing;
 
-import net.minecraft.world.level.material.MapColor;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.Objects;
+import net.minecraft.block.MapColor;
 
 public class RGBToMapColorConverter {
     public static byte[] convert(BufferedImage image) {
@@ -28,7 +27,7 @@ public class RGBToMapColorConverter {
     public static MapColor[] getMapColors(){
         MapColor[] colors = new MapColor[64];
         for (int i = 0; i<= 63; i++){
-            colors[i] = MapColor.byId(i);
+            colors[i] = MapColor.get(i);
         }
         return colors;
     }
@@ -46,7 +45,7 @@ public class RGBToMapColorConverter {
         int best_color = 0;
         double lowest_distance = 10000;
         for (int k = 0; k < colors.length; k++) {
-            Color mcColor = new Color(colors[k].col);
+            Color mcColor = new Color(colors[k].color);
             double[] mcColorVec = { (double) mcColor.getRed() / 255.0, (double) mcColor.getGreen() / 255.0,
                     (double) mcColor.getBlue() / 255.0 };
             for (int shadeInd = 0; shadeInd < shadeCoeffs.length; shadeInd++) {

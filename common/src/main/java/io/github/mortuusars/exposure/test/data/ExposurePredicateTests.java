@@ -5,12 +5,11 @@ import io.github.mortuusars.exposure.advancement.predicate.ExposurePredicate;
 import io.github.mortuusars.exposure.camera.infrastructure.FrameData;
 import io.github.mortuusars.exposure.test.framework.ITestClass;
 import io.github.mortuusars.exposure.test.framework.Test;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.GsonHelper;
-
 import java.util.List;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.JsonHelper;
 
 public class ExposurePredicateTests implements ITestClass {
     @Override
@@ -20,7 +19,7 @@ public class ExposurePredicateTests implements ITestClass {
         );
     }
 
-    private void deserializesProperly(ServerPlayer serverPlayer) {
+    private void deserializesProperly(ServerPlayerEntity serverPlayer) {
         String json =
             """
             {
@@ -34,16 +33,16 @@ public class ExposurePredicateTests implements ITestClass {
             }
             """;
 
-        JsonObject jsonObj = GsonHelper.parse(json).getAsJsonObject();
+        JsonObject jsonObj = JsonHelper.deserialize(json).getAsJsonObject();
 
         ExposurePredicate exposurePredicate = ExposurePredicate.fromJson(jsonObj);
 
-        CompoundTag frame = new CompoundTag();
-        frame.putUUID(FrameData.PHOTOGRAPHER_ID, serverPlayer.getUUID());
+        NbtCompound frame = new NbtCompound();
+        frame.putUuid(FrameData.PHOTOGRAPHER_ID, serverPlayer.getUuid());
         frame.putFloat(FrameData.SHUTTER_SPEED_MS, 100);
-        ListTag entities = new ListTag();
-        entities.add(new CompoundTag());
-        entities.add(new CompoundTag());
+        NbtList entities = new NbtList();
+        entities.add(new NbtCompound());
+        entities.add(new NbtCompound());
         frame.put(FrameData.ENTITIES_IN_FRAME, entities);
 
         assertThat(exposurePredicate.matches(serverPlayer, frame), "Deserialized predicate does not match frame: " + frame);

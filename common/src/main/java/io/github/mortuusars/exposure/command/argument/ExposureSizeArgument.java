@@ -8,12 +8,12 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.github.mortuusars.exposure.data.ExposureSize;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import net.minecraft.command.CommandSource;
+import net.minecraft.text.Text;
 
 public class ExposureSizeArgument implements ArgumentType<ExposureSize> {
     @Override
@@ -22,15 +22,15 @@ public class ExposureSizeArgument implements ArgumentType<ExposureSize> {
         @Nullable ExposureSize size = ExposureSize.byName(string);
 
         if (size == null)
-            throw new SimpleCommandExceptionType(Component.translatable("argument.enum.invalid", string)).create();
+            throw new SimpleCommandExceptionType(Text.translatable("argument.enum.invalid", string)).create();
 
         return size;
     }
 
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-        return SharedSuggestionProvider.suggest(Arrays.stream(ExposureSize.values())
-                .map(ExposureSize::getSerializedName), builder);
+        return CommandSource.suggestMatching(Arrays.stream(ExposureSize.values())
+                .map(ExposureSize::asString), builder);
     }
 
     public static ExposureSize getSize(final CommandContext<?> context, final String name) {

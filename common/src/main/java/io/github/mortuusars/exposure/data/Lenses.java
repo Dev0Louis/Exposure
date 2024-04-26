@@ -4,15 +4,15 @@ import io.github.mortuusars.exposure.camera.infrastructure.FocalRange;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.IPacket;
 import io.github.mortuusars.exposure.network.packet.client.SyncLensesS2CP;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.players.PlayerList;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
 import org.jetbrains.annotations.Nullable;
-
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import net.minecraft.item.ItemStack;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.server.PlayerManager;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 public class Lenses {
     private static ConcurrentMap<Ingredient, FocalRange> lenses = new ConcurrentHashMap<>();
@@ -35,7 +35,7 @@ public class Lenses {
         return new SyncLensesS2CP(new ConcurrentHashMap<>(lenses));
     }
 
-    public static void onDatapackSync(PlayerList playerList, @Nullable ServerPlayer excludePlayer) {
+    public static void onDatapackSync(PlayerManager playerList, @Nullable ServerPlayerEntity excludePlayer) {
         IPacket packet = getSyncToClientPacket();
         Packets.sendToClients(packet, playerList, excludePlayer);
     }

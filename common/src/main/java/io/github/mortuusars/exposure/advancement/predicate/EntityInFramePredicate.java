@@ -4,33 +4,33 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import io.github.mortuusars.exposure.camera.infrastructure.FrameData;
-import net.minecraft.advancements.critereon.LocationPredicate;
-import net.minecraft.advancements.critereon.MinMaxBounds;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.GsonHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.predicate.NumberRange;
+import net.minecraft.predicate.entity.LocationPredicate;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.JsonHelper;
 
 public class EntityInFramePredicate {
-    public static final EntityInFramePredicate ANY = new EntityInFramePredicate(null, LocationPredicate.ANY, MinMaxBounds.Doubles.ANY);
+    public static final EntityInFramePredicate ANY = new EntityInFramePredicate(null, LocationPredicate.ANY, NumberRange.FloatRange.ANY);
 
     @Nullable
     private final String id;
     private final LocationPredicate location;
-    private final MinMaxBounds.Doubles distance;
+    private final NumberRange.FloatRange distance;
 
-    public EntityInFramePredicate(@Nullable ResourceLocation id, LocationPredicate location, MinMaxBounds.Doubles distance) {
+    public EntityInFramePredicate(@Nullable Identifier id, LocationPredicate location, NumberRange.FloatRange distance) {
         this.id = id != null ? id.toString() : null;
         this.location = location;
         this.distance = distance;
     }
 
-    public boolean matches(ServerPlayer player, CompoundTag entityInfoTag) {
+    public boolean matches(ServerPlayerEntity player, NbtCompound entityInfoTag) {
         if (this.equals(ANY))
             return true;
 
@@ -40,14 +40,14 @@ public class EntityInFramePredicate {
         if (!locationMatches(player, entityInfoTag))
             return false;
 
-        if (!distance.matches(entityInfoTag.getFloat(FrameData.ENTITY_DISTANCE)))
+        if (!distance.test(entityInfoTag.getFloat(FrameData.ENTITY_DISTANCE)))
             return false;
 
         return true;
     }
 
-    private boolean locationMatches(ServerPlayer player, CompoundTag entityInfoTag) {
-        ListTag posList = entityInfoTag.getList(FrameData.ENTITY_POSITION, Tag.TAG_INT);
+    private boolean locationMatches(ServerPlayerEntity player, NbtCompound entityInfoTag) {
+        NbtList posList = entityInfoTag.getList(FrameData.ENTITY_POSITION, NbtElement.INT_TYPE);
         if (posList.size() < 3)
             return false;
 
@@ -55,7 +55,7 @@ public class EntityInFramePredicate {
         int y = posList.getInt(1);
         int z = posList.getInt(2);
 
-        return location.matches(player.serverLevel(), x, y, z);
+        return location.test(player.getServerWorld(), x, y, z);
     }
 
     public JsonElement serializeToJson() {
@@ -67,10 +67,10 @@ public class EntityInFramePredicate {
             json.addProperty("id", id);
 
         if (!location.equals(LocationPredicate.ANY))
-            json.add("location", location.serializeToJson());
+            json.add("location", location.toJson());
 
-        if (!distance.isAny())
-            json.add("distance", distance.serializeToJson());
+        if (!distance.isDummy())
+            json.add("distance", distance.toJson());
 
         return json;
     }
@@ -79,16 +79,16 @@ public class EntityInFramePredicate {
         if (json == null || json.isJsonNull())
             return ANY;
 
-        JsonObject jsonobject = GsonHelper.convertToJsonObject(json, "entity");
+        JsonObject jsonobject = JsonHelper.asObject(json, "entity");
 
         String id = null;
         if (jsonobject.has("id"))
             id = jsonobject.get("id").getAsString();
 
         LocationPredicate location = LocationPredicate.fromJson(jsonobject.getAsJsonObject("location"));
-        MinMaxBounds.Doubles distance = MinMaxBounds.Doubles.fromJson(jsonobject.getAsJsonObject("distance"));
+        NumberRange.FloatRange distance = NumberRange.FloatRange.fromJson(jsonobject.getAsJsonObject("distance"));
 
-        return new EntityInFramePredicate(id != null ? new ResourceLocation(id) : null, location, distance);
+        return new EntityInFramePredicate(id != null ? new Identifier(id) : null, location, distance);
     }
 
     @Override

@@ -1,13 +1,12 @@
 package io.github.mortuusars.exposure.camera.capture.component;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import io.github.mortuusars.exposure.camera.capture.Capture;
 import io.github.mortuusars.exposure.render.GammaModifier;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.Mth;
-
 import java.awt.*;
 import java.util.Objects;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.util.math.MathHelper;
 
 @SuppressWarnings("unused")
 public class BrightnessComponent implements ICaptureComponent {
@@ -20,7 +19,7 @@ public class BrightnessComponent implements ICaptureComponent {
 
     public BrightnessComponent(float brightnessStops) {
         this.brightnessStops = brightnessStops;
-        additionalGamma = (gammaPerStop * brightnessStops) * ((1f - Minecraft.getInstance().options.gamma().get().floatValue()) * 0.65f + 0.35f);
+        additionalGamma = (gammaPerStop * brightnessStops) * ((1f - MinecraftClient.getInstance().options.getGamma().getValue().floatValue()) * 0.65f + 0.35f);
     }
 
     public float getBrightnessStops() {
@@ -32,7 +31,7 @@ public class BrightnessComponent implements ICaptureComponent {
         if (delayFramesLeft <= 1 && GammaModifier.getAdditionalBrightness() == 0f) {
             GammaModifier.setAdditionalBrightness(additionalGamma);
             // Update light texture immediately:
-            Minecraft.getInstance().gameRenderer.lightTexture().tick();
+            MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager().tick();
         }
     }
 
@@ -54,9 +53,9 @@ public class BrightnessComponent implements ICaptureComponent {
             bias = lightness > 0.5f ? curve * 0.8f + 0.2f : curve * 0.5f + 0.5f;
         }
 
-        float r = Mth.lerp(bias, red, red * brightness);
-        float g = Mth.lerp(bias, green, green * brightness);
-        float b = Mth.lerp(bias, blue, blue * brightness);
+        float r = MathHelper.lerp(bias, red, red * brightness);
+        float g = MathHelper.lerp(bias, green, green * brightness);
+        float b = MathHelper.lerp(bias, blue, blue * brightness);
 
         // Above values are not clamped at 255 purposely.
         // Excess is redistributed to other channels. As a result - color gets less saturated, which gives more natural color.
@@ -65,9 +64,9 @@ public class BrightnessComponent implements ICaptureComponent {
         // BUT, it does not look perfect (idk, maybe because of dithering), so we blend them together.
         // This makes transitions smoother, subtler. Which looks good imo.
         return new Color(
-                Mth.clamp((int) ((r + rdst[0]) / 2), 0, 255),
-                Mth.clamp((int) ((g + rdst[1]) / 2), 0, 255),
-                Mth.clamp((int) ((b + rdst[2]) / 2), 0, 255));
+                MathHelper.clamp((int) ((r + rdst[0]) / 2), 0, 255),
+                MathHelper.clamp((int) ((g + rdst[1]) / 2), 0, 255),
+                MathHelper.clamp((int) ((b + rdst[2]) / 2), 0, 255));
     }
 
     @Override
@@ -85,9 +84,9 @@ public class BrightnessComponent implements ICaptureComponent {
         float max = Math.max(red, Math.max(green, blue));
         if (max <= threshold) {
             return new int[]{
-                    Mth.clamp(Math.round(red), 0, 255),
-                    Mth.clamp(Math.round(green), 0, 255),
-                    Mth.clamp(Math.round(blue), 0, 255)};
+                    MathHelper.clamp(Math.round(red), 0, 255),
+                    MathHelper.clamp(Math.round(green), 0, 255),
+                    MathHelper.clamp(Math.round(blue), 0, 255)};
         }
 
         float total = red + green + blue;
@@ -98,9 +97,9 @@ public class BrightnessComponent implements ICaptureComponent {
         float x = (3f * threshold - total) / (3f * max - total);
         float gray = threshold - x * max;
         return new int[]{
-                Mth.clamp(Math.round(gray + x * red), 0, 255),
-                Mth.clamp(Math.round(gray + x * green), 0, 255),
-                Mth.clamp(Math.round(gray + x * blue), 0, 255)};
+                MathHelper.clamp(Math.round(gray + x * red), 0, 255),
+                MathHelper.clamp(Math.round(gray + x * green), 0, 255),
+                MathHelper.clamp(Math.round(gray + x * blue), 0, 255)};
     }
 
     @Override

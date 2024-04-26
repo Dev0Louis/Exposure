@@ -1,17 +1,6 @@
 package io.github.mortuusars.exposure.gui.screen.element;
 
 import io.github.mortuusars.exposure.gui.screen.element.textbox.HorizontalAlignment;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.narration.NarratedElementType;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,19 +8,30 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
+import net.minecraft.client.gui.screen.narration.NarrationPart;
+import net.minecraft.client.gui.tooltip.HoveredTooltipPositioner;
+import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.OrderedText;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
+import net.minecraft.util.math.MathHelper;
 
-public class TextBlock extends AbstractWidget {
+public class TextBlock extends ClickableWidget {
     public int fontColor = 0xFF000000;
     public boolean drawShadow = false;
     public HorizontalAlignment alignment = HorizontalAlignment.LEFT;
 
-    private final Font font;
+    private final TextRenderer font;
     private final Function<Style, Boolean> componentClickedHandler;
 
-    private List<FormattedCharSequence> renderedLines;
-    private List<FormattedCharSequence> tooltipLines;
+    private List<OrderedText> renderedLines;
+    private List<OrderedText> tooltipLines;
 
-    public TextBlock(Font font, int x, int y, int width, int height, Component message, Function<Style, Boolean> componentClickedHandler) {
+    public TextBlock(TextRenderer font, int x, int y, int width, int height, Text message, Function<Style, Boolean> componentClickedHandler) {
         super(x, y, width, height, message);
         this.font = font;
         this.componentClickedHandler = componentClickedHandler;
@@ -40,37 +40,37 @@ public class TextBlock extends AbstractWidget {
     }
 
     @Override
-    public void setMessage(Component message) {
+    public void setMessage(Text message) {
         super.setMessage(message);
         makeLines();
     }
 
     protected void makeLines() {
-        Component text = getMessage();
-        List<FormattedCharSequence> lines = font.split(text, getWidth());
+        Text text = getMessage();
+        List<OrderedText> lines = font.wrapLines(text, getWidth());
 
-        int availableLines = Math.min(lines.size(), height / font.lineHeight);
+        int availableLines = Math.min(lines.size(), height / font.fontHeight);
 
-        List<FormattedCharSequence> visibleLines = new ArrayList<>();
+        List<OrderedText> visibleLines = new ArrayList<>();
         for (int i = 0; i < availableLines; i++) {
-            FormattedCharSequence line = lines.get(i);
+            OrderedText line = lines.get(i);
 
             if (i == availableLines - 1 && availableLines < lines.size()) {
-                line = FormattedCharSequence.composite(line,
-                        Component.literal("...").withStyle(text.getStyle()).getVisualOrderText());
+                line = OrderedText.concat(line,
+                        Text.literal("...").fillStyle(text.getStyle()).asOrderedText());
             }
 
             visibleLines.add(line);
         }
 
-        List<FormattedCharSequence> hiddenLines = Collections.emptyList();
+        List<OrderedText> hiddenLines = Collections.emptyList();
         if (availableLines < lines.size()) {
             hiddenLines = new ArrayList<>(lines.stream()
                     .skip(availableLines)
                     .toList());
 
-            hiddenLines.set(0, FormattedCharSequence.composite(
-                    FormattedCharSequence.forward("...", text.getStyle()), hiddenLines.get(0)));
+            hiddenLines.set(0, OrderedText.concat(
+                    OrderedText.styledForwardsVisitedString("...", text.getStyle()), hiddenLines.get(0)));
         }
 
         this.renderedLines = visibleLines;
@@ -84,56 +84,56 @@ public class TextBlock extends AbstractWidget {
     }
 
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
-        narrationElementOutput.add(NarratedElementType.TITLE, createNarrationMessage());
+    protected void appendClickableNarrations(NarrationMessageBuilder narrationElementOutput) {
+        narrationElementOutput.put(NarrationPart.TITLE, getNarrationMessage());
     }
 
     @Override
-    protected @NotNull MutableComponent createNarrationMessage() {
+    protected @NotNull MutableText getNarrationMessage() {
         return getMessage().copy();
     }
 
     @Override
-    protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    protected void renderButton(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         for (int i = 0; i < renderedLines.size(); i++) {
-            FormattedCharSequence line = renderedLines.get(i);
+            OrderedText line = renderedLines.get(i);
 
-            int x = getX() + alignment.align(getWidth(), font.width(line));
-            guiGraphics.drawString(font, line, x, getY() + font.lineHeight * i, fontColor, drawShadow);
+            int x = getX() + alignment.align(getWidth(), font.getWidth(line));
+            guiGraphics.drawText(font, line, x, getY() + font.fontHeight * i, fontColor, drawShadow);
         }
 
         if (isHovered()) {
             Style style = getClickedComponentStyleAt(mouseX, mouseY);
             if (style != null)
-                guiGraphics.renderComponentHoverEffect(this.font, style, mouseX, mouseY);
+                guiGraphics.drawHoverEvent(this.font, style, mouseX, mouseY);
         }
 
         if (!tooltipLines.isEmpty() && isMouseOver(mouseX, mouseY))
-            guiGraphics.renderTooltip(font, tooltipLines, DefaultTooltipPositioner.INSTANCE, mouseX, mouseY);
+            guiGraphics.drawTooltip(font, tooltipLines, HoveredTooltipPositioner.INSTANCE, mouseX, mouseY);
     }
 
     public @Nullable Style getClickedComponentStyleAt(double mouseX, double mouseY) {
         if (renderedLines.isEmpty())
             return null;
 
-        int x = Mth.floor(mouseX - getX());
-        int y = Mth.floor(mouseY - getY());
+        int x = MathHelper.floor(mouseX - getX());
+        int y = MathHelper.floor(mouseY - getY());
 
         if (x < 0 || y < 0 || x > getWidth() || y > getHeight())
             return null;
 
-        int hoveredLine = y / font.lineHeight;
+        int hoveredLine = y / font.fontHeight;
 
         if (hoveredLine >= renderedLines.size())
             return null;
 
-        FormattedCharSequence line = renderedLines.get(hoveredLine);
-        int lineStart = alignment.align(getWidth(), font.width(line));
+        OrderedText line = renderedLines.get(hoveredLine);
+        int lineStart = alignment.align(getWidth(), font.getWidth(line));
 
         if (x < lineStart)
             return null;
 
 
-        return font.getSplitter().componentStyleAtWidth(line, x - lineStart);
+        return font.getTextHandler().getStyleAt(line, x - lineStart);
     }
 }

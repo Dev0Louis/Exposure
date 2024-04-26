@@ -12,29 +12,29 @@ import io.github.mortuusars.exposure.command.argument.ExposureSizeArgument;
 import io.github.mortuusars.exposure.data.storage.ExposureExporter;
 import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
 import io.github.mortuusars.exposure.data.ExposureSize;
-import net.minecraft.ChatFormatting;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.level.storage.LevelResource;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.WorldSavePath;
 
-import static net.minecraft.commands.Commands.*;
+import static net.minecraft.server.command.CommandManager.*;
 
 public class ExportCommand {
-    public static LiteralArgumentBuilder<CommandSourceStack> get() {
+    public static LiteralArgumentBuilder<ServerCommandSource> get() {
         return literal("export")
-                .requires((stack) -> stack.hasPermission(3))
+                .requires((stack) -> stack.hasPermissionLevel(3))
                 .then(id())
                 .then(all());
     }
 
-    private static ArgumentBuilder<CommandSourceStack, ?> id() {
+    private static ArgumentBuilder<ServerCommandSource, ?> id() {
         return literal("id")
                 .then(argument("id", StringArgumentType.string())
                         .suggests(new ExposureIdSuggestionProvider())
@@ -54,7 +54,7 @@ public class ExportCommand {
                                                 ExposureLookArgument.getLook(context, "look"))))));
     }
 
-    private static ArgumentBuilder<CommandSourceStack, ?> all() {
+    private static ArgumentBuilder<ServerCommandSource, ?> all() {
         return literal("all")
                 .executes(context -> exportAll(context.getSource(), ExposureSize.X1, ExposureLook.REGULAR))
                 .then(argument("size", new ExposureSizeArgument())
@@ -67,21 +67,21 @@ public class ExportCommand {
                                         ExposureLookArgument.getLook(context, "look")))));
     }
 
-    private static int exportAll(CommandSourceStack source, ExposureSize size, ExposureLook look) {
+    private static int exportAll(ServerCommandSource source, ExposureSize size, ExposureLook look) {
         List<String> ids = ExposureServer.getExposureStorage().getAllIds();
         return exportExposures(source, ids, size, look);
     }
 
-    private static int exportExposures(CommandSourceStack stack, List<String> exposureIds, ExposureSize size, ExposureLook look) {
+    private static int exportExposures(ServerCommandSource stack, List<String> exposureIds, ExposureSize size, ExposureLook look) {
         int savedCount = 0;
 
-        File folder = stack.getServer().getWorldPath(LevelResource.ROOT).resolve("exposures").toFile();
+        File folder = stack.getServer().getSavePath(WorldSavePath.ROOT).resolve("exposures").toFile();
         boolean ignored = folder.mkdirs();
 
         for (String id : exposureIds) {
             Optional<ExposureSavedData> data = ExposureServer.getExposureStorage().getOrQuery(id);
             if (data.isEmpty()) {
-                stack.sendFailure(Component.translatable("command.exposure.export.failure.not_found", id));
+                stack.sendError(Text.translatable("command.exposure.export.failure.not_found", id));
                 continue;
             }
 
@@ -95,21 +95,21 @@ public class ExportCommand {
                     .save(exposureSavedData);
 
             if (saved)
-                stack.sendSuccess(() ->
-                        Component.translatable("command.exposure.export.success.saved_exposure_id", id), true);
+                stack.sendFeedback(() ->
+                        Text.translatable("command.exposure.export.success.saved_exposure_id", id), true);
 
             savedCount++;
         }
 
         if (savedCount > 0) {
             String folderPath = getFolderPath(folder);
-            Component folderComponent = Component.literal(folderPath)
-                    .withStyle(ChatFormatting.UNDERLINE)
-                    .withStyle(arg -> arg.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, folderPath)));
-            Component component = Component.translatable("command.exposure.export.success.result", savedCount, folderComponent);
-            stack.sendSuccess(() -> component, true);
+            Text folderComponent = Text.literal(folderPath)
+                    .formatted(Formatting.UNDERLINE)
+                    .styled(arg -> arg.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, folderPath)));
+            Text component = Text.translatable("command.exposure.export.success.result", savedCount, folderComponent);
+            stack.sendFeedback(() -> component, true);
         } else
-            stack.sendFailure(Component.translatable("command.exposure.export.failure.none_saved"));
+            stack.sendError(Text.translatable("command.exposure.export.failure.none_saved"));
 
         return 0;
     }

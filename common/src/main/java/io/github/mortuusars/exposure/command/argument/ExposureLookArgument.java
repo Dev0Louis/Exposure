@@ -8,12 +8,12 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import io.github.mortuusars.exposure.data.ExposureLook;
-import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import net.minecraft.command.CommandSource;
+import net.minecraft.text.Text;
 
 public class ExposureLookArgument implements ArgumentType<ExposureLook> {
     @Override
@@ -21,16 +21,16 @@ public class ExposureLookArgument implements ArgumentType<ExposureLook> {
         String string = reader.readString();
         @Nullable ExposureLook look = ExposureLook.byName(string);
         if (look == null)
-            throw new SimpleCommandExceptionType(Component.translatable("argument.enum.invalid", string)).create();
+            throw new SimpleCommandExceptionType(Text.translatable("argument.enum.invalid", string)).create();
 
         return look;
     }
 
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-        return SharedSuggestionProvider.suggest(Arrays.stream(ExposureLook.values())
+        return CommandSource.suggestMatching(Arrays.stream(ExposureLook.values())
                 .filter(l -> l != ExposureLook.REGULAR)
-                .map(ExposureLook::getSerializedName), builder);
+                .map(ExposureLook::asString), builder);
     }
 
     public static ExposureLook getLook(final CommandContext<?> context, final String name) {

@@ -1,15 +1,15 @@
 package io.github.mortuusars.exposure.render;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import io.github.mortuusars.exposure.ExposureClient;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.RotationAxis;
 
 public class PhotographInHandRenderer {
-    public static void renderPhotograph(PoseStack poseStack, MultiBufferSource bufferSource, int combinedLight, ItemStack stack) {
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
+    public static void renderPhotograph(MatrixStack poseStack, VertexConsumerProvider bufferSource, int combinedLight, ItemStack stack) {
+        poseStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F));
+        poseStack.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(180.0F));
         poseStack.scale(0.38f, 0.38f, 0.38f);
         poseStack.translate(-0.5, -0.5, 0);
         float scale = 1f / ExposureClient.getExposureRenderer().getSize();

@@ -5,37 +5,37 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.network.PacketDirection;
 import io.github.mortuusars.exposure.network.packet.IPacket;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
-public record CameraSetSelfieModeC2SP(InteractionHand hand, boolean isInSelfieMode, boolean effects) implements IPacket {
-    public static final ResourceLocation ID = Exposure.resource("camera_set_selfie_mode");
+public record CameraSetSelfieModeC2SP(Hand hand, boolean isInSelfieMode, boolean effects) implements IPacket {
+    public static final Identifier ID = Exposure.resource("camera_set_selfie_mode");
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return ID;
     }
 
-    public FriendlyByteBuf toBuffer(FriendlyByteBuf buffer) {
-        buffer.writeEnum(hand);
+    public PacketByteBuf toBuffer(PacketByteBuf buffer) {
+        buffer.writeEnumConstant(hand);
         buffer.writeBoolean(isInSelfieMode);
         buffer.writeBoolean(effects);
         return buffer;
     }
 
-    public static CameraSetSelfieModeC2SP fromBuffer(FriendlyByteBuf buffer) {
-        return new CameraSetSelfieModeC2SP(buffer.readEnum(InteractionHand.class), buffer.readBoolean(), buffer.readBoolean());
+    public static CameraSetSelfieModeC2SP fromBuffer(PacketByteBuf buffer) {
+        return new CameraSetSelfieModeC2SP(buffer.readEnumConstant(Hand.class), buffer.readBoolean(), buffer.readBoolean());
     }
 
     @Override
-    public boolean handle(PacketDirection direction, @Nullable Player player) {
+    public boolean handle(PacketDirection direction, @Nullable PlayerEntity player) {
         Preconditions.checkState(player != null, "Cannot handle packet: Player was null");
 
-        ItemStack itemInHand = player.getItemInHand(hand);
+        ItemStack itemInHand = player.getStackInHand(hand);
         if (!(itemInHand.getItem() instanceof CameraItem cameraItem))
             throw new IllegalStateException("Item in hand in not a Camera.");
 

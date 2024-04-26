@@ -1,12 +1,11 @@
 package io.github.mortuusars.exposure.camera.capture.processing;
 
-import net.minecraft.util.Mth;
-import net.minecraft.world.level.material.MapColor;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.Objects;
+import net.minecraft.block.MapColor;
+import net.minecraft.util.math.MathHelper;
 
 public class FloydDither {
     private record NegatableColor(int r, int g, int b) {}
@@ -55,14 +54,14 @@ public class FloydDither {
     }
 
     private static int applyError(Color pixelColor, NegatableColor error, double quantConst) {
-        int pR = Mth.clamp(pixelColor.getRed() + (int) ((double) error.r * quantConst), 0, 255);
-        int pG = Mth.clamp(pixelColor.getGreen() + (int) ((double) error.g * quantConst), 0, 255);
-        int pB = Mth.clamp(pixelColor.getBlue() + (int) ((double) error.b * quantConst), 0, 255);
+        int pR = MathHelper.clamp(pixelColor.getRed() + (int) ((double) error.r * quantConst), 0, 255);
+        int pG = MathHelper.clamp(pixelColor.getGreen() + (int) ((double) error.g * quantConst), 0, 255);
+        int pB = MathHelper.clamp(pixelColor.getBlue() + (int) ((double) error.b * quantConst), 0, 255);
         return new Color(pR, pG, pB, pixelColor.getAlpha()).getRGB();
     }
 
     private static Color mapColorToRGBColor(MapColor[] colors, int color) {
-        Color mcColor = new Color(colors[color >> 2].col);
+        Color mcColor = new Color(colors[color >> 2].color);
         double[] mcColorVec = { mcColor.getRed(), mcColor.getGreen(), mcColor.getBlue() };
         double coeff = shadeCoeffs[color & 3];
         return new Color((int) (mcColorVec[0] * coeff), (int) (mcColorVec[1] * coeff), (int) (mcColorVec[2] * coeff));
@@ -71,7 +70,7 @@ public class FloydDither {
     public static MapColor[] getMapColors(){
         MapColor[] colors = new MapColor[64];
         for (int i = 0; i<= 63; i++){
-            colors[i] = MapColor.byId(i);
+            colors[i] = MapColor.get(i);
         }
         return colors;
     }
@@ -89,7 +88,7 @@ public class FloydDither {
         int best_color = 0;
         double lowest_distance = 10000;
         for (int k = 0; k < colors.length; k++) {
-            Color mcColor = new Color(colors[k].col);
+            Color mcColor = new Color(colors[k].color);
             double[] mcColorVec = { (double) mcColor.getRed() / 255.0, (double) mcColor.getGreen() / 255.0,
                     (double) mcColor.getBlue() / 255.0 };
             for (int shadeInd = 0; shadeInd < shadeCoeffs.length; shadeInd++) {

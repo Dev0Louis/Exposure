@@ -6,16 +6,15 @@ import io.github.mortuusars.exposure.test.data.ExposurePredicateTests;
 import io.github.mortuusars.exposure.test.framework.Test;
 import io.github.mortuusars.exposure.test.framework.TestResult;
 import io.github.mortuusars.exposure.test.framework.TestingResult;
-import net.minecraft.server.level.ServerPlayer;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 public class Tests {
-    private final ServerPlayer player;
+    private final ServerPlayerEntity player;
 
-    public Tests(ServerPlayer player) {
+    public Tests(ServerPlayerEntity player) {
         this.player = player;
     }
 

@@ -6,59 +6,59 @@ import io.github.mortuusars.exposure.item.PhotographItem;
 import io.github.mortuusars.exposure.recipe.FilmDevelopingRecipe;
 import io.github.mortuusars.exposure.recipe.PhotographCopyingRecipe;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.NonNullList;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
-import net.minecraft.util.Mth;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.item.TooltipContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.recipe.CraftingRecipe;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.Recipe;
+import net.minecraft.recipe.RecipeType;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.World;
 
 public class ClientGUI {
     public static void openPhotographScreen(List<ItemAndStack<PhotographItem>> photographs) {
-        Minecraft.getInstance().setScreen(new PhotographScreen(photographs));
+        MinecraftClient.getInstance().setScreen(new PhotographScreen(photographs));
     }
 
     public static void openViewfinderControlsScreen() {
-        Minecraft.getInstance().setScreen(new ViewfinderControlsScreen());
+        MinecraftClient.getInstance().setScreen(new ViewfinderControlsScreen());
     }
 
-    public static void addFilmRollDevelopingTooltip(ItemStack filmStack, @Nullable Level level, @NotNull List<Component> tooltipComponents, @NotNull TooltipFlag isAdvanced) {
+    public static void addFilmRollDevelopingTooltip(ItemStack filmStack, @Nullable World level, @NotNull List<Text> tooltipComponents, @NotNull TooltipContext isAdvanced) {
         addRecipeTooltip(filmStack, level, tooltipComponents, isAdvanced,
                 r -> r instanceof FilmDevelopingRecipe filmDevelopingRecipe
                     && filmDevelopingRecipe.getTransferIngredient().test(filmStack), "item.exposure.film_roll.tooltip.details.develop");
     }
 
-    public static void addPhotographCopyingTooltip(ItemStack photographStack, @Nullable Level level, @NotNull List<Component> tooltipComponents, @NotNull TooltipFlag isAdvanced) {
+    public static void addPhotographCopyingTooltip(ItemStack photographStack, @Nullable World level, @NotNull List<Text> tooltipComponents, @NotNull TooltipContext isAdvanced) {
         addRecipeTooltip(photographStack, level, tooltipComponents, isAdvanced,
                 r -> r instanceof PhotographCopyingRecipe photographCopyingRecipe
                         && photographCopyingRecipe.getTransferIngredient().test(photographStack), "item.exposure.photograph.tooltip.details.copy");
     }
 
-    private static void addRecipeTooltip(ItemStack stack, @Nullable Level level,
-                                         @NotNull List<Component> tooltipComponents, @NotNull TooltipFlag isAdvanced,
+    private static void addRecipeTooltip(ItemStack stack, @Nullable World level,
+                                         @NotNull List<Text> tooltipComponents, @NotNull TooltipContext isAdvanced,
                                          Predicate<CraftingRecipe> recipeFilter, String detailsKey) {
         if (level == null)
             return;
 
-        tooltipComponents.add(Component.translatable("tooltip.exposure.hold_for_details"));
+        tooltipComponents.add(Text.translatable("tooltip.exposure.hold_for_details"));
         if (!Screen.hasShiftDown()) {
             return;
         }
 
-        Optional<NonNullList<Ingredient>> recipeIngredients = level.getRecipeManager().getAllRecipesFor(RecipeType.CRAFTING)
+        Optional<DefaultedList<Ingredient>> recipeIngredients = level.getRecipeManager().listAllOfType(RecipeType.CRAFTING)
                 .stream()
                 .filter(recipeFilter)
                 .findFirst()
@@ -67,27 +67,27 @@ public class ClientGUI {
         if (recipeIngredients.isEmpty() || recipeIngredients.get().isEmpty())
             return;
 
-        NonNullList<Ingredient> ingredients = recipeIngredients.get();
+        DefaultedList<Ingredient> ingredients = recipeIngredients.get();
 
-        tooltipComponents.add(Component.empty());
+        tooltipComponents.add(Text.empty());
 
         Style orange = Style.EMPTY.withColor(0xc7954b);
         Style yellow = Style.EMPTY.withColor(0xeeda78);
 
-        tooltipComponents.add(Component.translatable(detailsKey).withStyle(orange));
+        tooltipComponents.add(Text.translatable(detailsKey).fillStyle(orange));
 
         for (int i = 0; i < ingredients.size(); i++) {
-            ItemStack[] stacks = ingredients.get(i).getItems();
+            ItemStack[] stacks = ingredients.get(i).getMatchingStacks();
 
             if (stacks.length == 0)
-                tooltipComponents.add(Component.literal("  ").append(Component.literal("?").withStyle(yellow)));
+                tooltipComponents.add(Text.literal("  ").append(Text.literal("?").fillStyle(yellow)));
             else if (stacks.length == 1)
-                tooltipComponents.add(Component.literal("  ").append(stacks[0].getHoverName().copy().withStyle(yellow)));
+                tooltipComponents.add(Text.literal("  ").append(stacks[0].getName().copy().fillStyle(yellow)));
             else { // Cycle stacks if it's not one:
-                int val = (int)Math.ceil((level.getGameTime() + 10 * i) % (20f * stacks.length) / 20f);
-                int index = Mth.clamp(val - 1, 0, stacks.length - 1);
+                int val = (int)Math.ceil((level.getTime() + 10 * i) % (20f * stacks.length) / 20f);
+                int index = MathHelper.clamp(val - 1, 0, stacks.length - 1);
 
-                tooltipComponents.add(Component.literal("  ").append(stacks[index].getHoverName().copy().withStyle(yellow)));
+                tooltipComponents.add(Text.literal("  ").append(stacks[index].getName().copy().fillStyle(yellow)));
             }
         }
     }

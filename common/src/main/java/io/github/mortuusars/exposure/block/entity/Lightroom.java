@@ -1,23 +1,23 @@
 package io.github.mortuusars.exposure.block.entity;
 
-import net.minecraft.util.StringRepresentable;
+import net.minecraft.util.StringIdentifiable;
 import org.jetbrains.annotations.NotNull;
 
 public class Lightroom {
-    public enum Process implements StringRepresentable {
+    public enum Process implements StringIdentifiable {
         REGULAR,
         CHROMATIC;
 
         public static Process fromStringOrDefault(String serializedName, Process defaultValue) {
             for (Process value : values()) {
-                if (value.getSerializedName().equals(serializedName))
+                if (value.asString().equals(serializedName))
                     return value;
             }
             return defaultValue;
         }
 
         @Override
-        public @NotNull String getSerializedName() {
+        public @NotNull String asString() {
             return name().toLowerCase();
         }
     }

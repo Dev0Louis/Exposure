@@ -35,7 +35,7 @@ public abstract class CreateJEICompatMixin {
     private SequencedAssemblyRecipe exposure$developingRecipe(FilmType filmType) {
         List<FluidStack> fillingSteps = CreateFilmDeveloping.getFillingSteps(filmType);
 
-        SequencedAssemblyRecipeBuilder recipeBuilder = new SequencedAssemblyRecipeBuilder(Exposure.resource("sequenced_" + filmType.getSerializedName() + "_film_developing"))
+        SequencedAssemblyRecipeBuilder recipeBuilder = new SequencedAssemblyRecipeBuilder(Exposure.resource("sequenced_" + filmType.asString() + "_film_developing"))
                 .require(filmType.createItemStack().getItem())
                 .transitionTo(filmType.createItemStack().getItem())
                 .loops(1)

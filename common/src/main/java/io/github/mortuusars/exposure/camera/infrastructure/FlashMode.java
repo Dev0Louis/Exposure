@@ -1,12 +1,12 @@
 package io.github.mortuusars.exposure.camera.infrastructure;
 
 import io.github.mortuusars.exposure.Exposure;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.util.StringRepresentable;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.text.Text;
+import net.minecraft.util.StringIdentifiable;
 import org.jetbrains.annotations.NotNull;
 
-public enum FlashMode implements StringRepresentable {
+public enum FlashMode implements StringIdentifiable {
     OFF("off"),
     ON("on"),
     AUTO("auto");
@@ -31,18 +31,18 @@ public enum FlashMode implements StringRepresentable {
     }
 
     @Override
-    public @NotNull String getSerializedName() {
+    public @NotNull String asString() {
         return id;
     }
 
-    public Component translate() {
-        return Component.translatable("gui." + Exposure.ID + ".flash_mode." + id);
+    public Text translate() {
+        return Text.translatable("gui." + Exposure.ID + ".flash_mode." + id);
     }
-    public void toBuffer(FriendlyByteBuf buffer) {
-        buffer.writeUtf(getId());
+    public void toBuffer(PacketByteBuf buffer) {
+        buffer.writeString(getId());
     }
 
-    public static FlashMode fromBuffer(FriendlyByteBuf buffer) {
-        return FlashMode.byIdOrOff(buffer.readUtf());
+    public static FlashMode fromBuffer(PacketByteBuf buffer) {
+        return FlashMode.byIdOrOff(buffer.readString());
     }
 }

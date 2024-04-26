@@ -1,30 +1,30 @@
 package io.github.mortuusars.exposure.gui.screen;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import io.github.mortuusars.exposure.gui.screen.element.textbox.HorizontalAlignment;
 import io.github.mortuusars.exposure.gui.screen.element.textbox.TextBox;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
 
 public class TextTestScreen extends Screen {
 
     private TextBox textBox;
 
     public TextTestScreen() {
-        super(Component.empty());
+        super(Text.empty());
     }
 
     private String text = "initial";
 
     @Override
     protected void init() {
-        textBox = new TextBox(font, width / 2 - 50, height / 2 - 20, 100, 40, () -> text, t -> text = t);
+        textBox = new TextBox(textRenderer, width / 2 - 50, height / 2 - 20, 100, 40, () -> text, t -> text = t);
 
         textBox.horizontalAlignment = HorizontalAlignment.RIGHT;
 
 
-        addRenderableWidget(textBox);
+        addDrawableChild(textBox);
     }
 
     @Override
@@ -33,7 +33,7 @@ public class TextTestScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
 
         renderBackground(guiGraphics);
         guiGraphics.fill(textBox.getX() - 4, textBox.getY() - 4,
@@ -51,7 +51,7 @@ public class TextTestScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == InputConstants.KEY_TAB) {
+        if (keyCode == InputUtil.GLFW_KEY_TAB) {
             return super.keyPressed(keyCode, scanCode, modifiers);
         }
         return textBox.keyPressed(keyCode, scanCode,modifiers) || super.keyPressed(keyCode, scanCode, modifiers);

@@ -5,52 +5,52 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.item.AlbumItem;
 import io.github.mortuusars.exposure.network.PacketDirection;
 import io.github.mortuusars.exposure.network.packet.IPacket;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record AlbumSignC2SP(String title) implements IPacket {
-    public static final ResourceLocation ID = Exposure.resource("album_sign");
+    public static final Identifier ID = Exposure.resource("album_sign");
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return ID;
     }
 
-    public static AlbumSignC2SP fromBuffer(FriendlyByteBuf buffer) {
-        return new AlbumSignC2SP(buffer.readUtf());
+    public static AlbumSignC2SP fromBuffer(PacketByteBuf buffer) {
+        return new AlbumSignC2SP(buffer.readString());
     }
 
     @Override
-    public FriendlyByteBuf toBuffer(FriendlyByteBuf buffer) {
-        buffer.writeUtf(title);
+    public PacketByteBuf toBuffer(PacketByteBuf buffer) {
+        buffer.writeString(title);
         return buffer;
     }
 
     @Override
-    public boolean handle(PacketDirection direction, @Nullable Player player) {
+    public boolean handle(PacketDirection direction, @Nullable PlayerEntity player) {
         Preconditions.checkState(player != null, "Cannot handle packet: Player was null");
 
-        InteractionHand hand;
-        if (player.getItemInHand(InteractionHand.MAIN_HAND).getItem() instanceof AlbumItem albumItem && albumItem.isEditable())
-            hand = InteractionHand.MAIN_HAND;
-        else if (player.getItemInHand(InteractionHand.OFF_HAND).getItem() instanceof AlbumItem albumItem && albumItem.isEditable())
-            hand = InteractionHand.OFF_HAND;
+        Hand hand;
+        if (player.getStackInHand(Hand.MAIN_HAND).getItem() instanceof AlbumItem albumItem && albumItem.isEditable())
+            hand = Hand.MAIN_HAND;
+        else if (player.getStackInHand(Hand.OFF_HAND).getItem() instanceof AlbumItem albumItem && albumItem.isEditable())
+            hand = Hand.OFF_HAND;
         else
             throw new IllegalStateException("Player receiving this packet should have an album in one of the hands.");
 
-        ItemStack albumStack = player.getItemInHand(hand);
+        ItemStack albumStack = player.getStackInHand(hand);
         AlbumItem albumItem = (AlbumItem) albumStack.getItem();
 
         ItemStack signedAlbum = albumItem.sign(albumStack, title, player.getName().getString());
-        player.setItemInHand(hand, signedAlbum);
+        player.setStackInHand(hand, signedAlbum);
 
-        player.level().playSound(null, player, SoundEvents.VILLAGER_WORK_CARTOGRAPHER, SoundSource.PLAYERS, 0.8f ,1f);
+        player.getWorld().playSoundFromEntity(null, player, SoundEvents.ENTITY_VILLAGER_WORK_CARTOGRAPHER, SoundCategory.PLAYERS, 0.8f ,1f);
 
         return true;
     }

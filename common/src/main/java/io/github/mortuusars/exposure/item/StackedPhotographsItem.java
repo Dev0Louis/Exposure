@@ -9,26 +9,6 @@ import io.github.mortuusars.exposure.gui.ClientGUI;
 import io.github.mortuusars.exposure.gui.component.PhotographTooltip;
 import io.github.mortuusars.exposure.entity.PhotographEntity;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.SlotAccess;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.ClickAction;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,11 +16,31 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.client.item.TooltipData;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.StackReference;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.ClickType;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
+import net.minecraft.world.event.GameEvent;
 
 public class StackedPhotographsItem extends Item {
     public static final String PHOTOGRAPHS_TAG = "Photographs";
 
-    public StackedPhotographsItem(Properties properties) {
+    public StackedPhotographsItem(Settings properties) {
         super(properties);
     }
 
@@ -60,7 +60,7 @@ public class StackedPhotographsItem extends Item {
     }
 
     public List<ItemAndStack<PhotographItem>> getPhotographs(ItemStack stack, int limit) {
-        ListTag listTag = getOrCreatePhotographsListTag(stack);
+        NbtList listTag = getOrCreatePhotographsListTag(stack);
         if (listTag.isEmpty())
             return Collections.emptyList();
 
@@ -79,9 +79,9 @@ public class StackedPhotographsItem extends Item {
     public void addPhotograph(ItemStack stack, ItemStack photographStack, int index) {
         Preconditions.checkState(index >= 0 && index <= getPhotographsCount(stack), index + " is out of bounds. Count: " + getPhotographsCount(stack));
         Preconditions.checkState(canAddPhotograph(stack), "Cannot add more photographs than this photo can store. Max count: " + getStackLimit());
-        ListTag listTag = getOrCreatePhotographsListTag(stack);
-        listTag.add(index, photographStack.save(new CompoundTag()));
-        stack.getOrCreateTag().put(PHOTOGRAPHS_TAG, listTag);
+        NbtList listTag = getOrCreatePhotographsListTag(stack);
+        listTag.add(index, photographStack.writeNbt(new NbtCompound()));
+        stack.getOrCreateNbt().put(PHOTOGRAPHS_TAG, listTag);
     }
 
     public void addPhotographOnTop(ItemStack stack, ItemStack photographStack) {
@@ -95,9 +95,9 @@ public class StackedPhotographsItem extends Item {
     public ItemAndStack<PhotographItem> removePhotograph(ItemStack stack, int index) {
         Preconditions.checkState(index >= 0 && index < getPhotographsCount(stack), index + " is out of bounds. Count: " + getPhotographsCount(stack));
 
-        ListTag listTag = getOrCreatePhotographsListTag(stack);
-        ItemStack photographStack = ItemStack.of((CompoundTag)listTag.remove(index));
-        stack.getOrCreateTag().put(PHOTOGRAPHS_TAG, listTag);
+        NbtList listTag = getOrCreatePhotographsListTag(stack);
+        ItemStack photographStack = ItemStack.fromNbt((NbtCompound)listTag.remove(index));
+        stack.getOrCreateNbt().put(PHOTOGRAPHS_TAG, listTag);
 
         return new ItemAndStack<>(photographStack);
     }
@@ -110,41 +110,41 @@ public class StackedPhotographsItem extends Item {
         return removePhotograph(stack, getPhotographsCount(stack) - 1);
     }
 
-    private ListTag getOrCreatePhotographsListTag(ItemStack stack) {
-        return stack.getTag() != null ? stack.getOrCreateTag().getList(PHOTOGRAPHS_TAG, Tag.TAG_COMPOUND) : new ListTag();
+    private NbtList getOrCreatePhotographsListTag(ItemStack stack) {
+        return stack.getNbt() != null ? stack.getOrCreateNbt().getList(PHOTOGRAPHS_TAG, NbtElement.COMPOUND_TYPE) : new NbtList();
     }
 
-    private ItemAndStack<PhotographItem> getPhotograph(ListTag photographsList, int index) {
-        CompoundTag stackTag = photographsList.getCompound(index);
-        ItemStack stack = ItemStack.of(stackTag);
+    private ItemAndStack<PhotographItem> getPhotograph(NbtList photographsList, int index) {
+        NbtCompound stackTag = photographsList.getCompound(index);
+        ItemStack stack = ItemStack.fromNbt(stackTag);
         return new ItemAndStack<>(stack);
     }
 
-    public @Nullable Either<String, ResourceLocation> getFirstIdOrTexture(ItemStack stack) {
-        ListTag listTag = getOrCreatePhotographsListTag(stack);
+    public @Nullable Either<String, Identifier> getFirstIdOrTexture(ItemStack stack) {
+        NbtList listTag = getOrCreatePhotographsListTag(stack);
         if (listTag.isEmpty())
             return null;
 
-        CompoundTag first = listTag.getCompound(0).getCompound("tag");
+        NbtCompound first = listTag.getCompound(0).getCompound("tag");
         String id = first.getString(FrameData.ID);
         if (!id.isEmpty())
             return Either.left(id);
 
         String resource = first.getString(FrameData.TEXTURE);
         if (!resource.isEmpty())
-            return Either.right(new ResourceLocation(resource));
+            return Either.right(new Identifier(resource));
 
         return null;
     }
 
-    public List<@Nullable Either<String, ResourceLocation>> getTopPhotographs(ItemStack stack, int count) {
+    public List<@Nullable Either<String, Identifier>> getTopPhotographs(ItemStack stack, int count) {
         Preconditions.checkArgument(count > 0, "count '{}' is not valid. > 0", count);
 
-        List<@Nullable Either<String, ResourceLocation>> photographs = new ArrayList<>();
-        ListTag listTag = getOrCreatePhotographsListTag(stack);
+        List<@Nullable Either<String, Identifier>> photographs = new ArrayList<>();
+        NbtList listTag = getOrCreatePhotographsListTag(stack);
 
         for (int i = 0; i < Math.min(listTag.size(), count); i++) {
-            CompoundTag photographTag = listTag.getCompound(i).getCompound("tag");
+            NbtCompound photographTag = listTag.getCompound(i).getCompound("tag");
 
             String id = photographTag.getString(FrameData.ID);
             if (!id.isEmpty()) {
@@ -154,7 +154,7 @@ public class StackedPhotographsItem extends Item {
 
             String resource = photographTag.getString(FrameData.TEXTURE);
             if (!resource.isEmpty()) {
-                photographs.add(Either.right(new ResourceLocation(resource)));
+                photographs.add(Either.right(new Identifier(resource)));
                 continue;
             }
 
@@ -171,7 +171,7 @@ public class StackedPhotographsItem extends Item {
     // ---
 
     @Override
-    public @NotNull Optional<TooltipComponent> getTooltipImage(@NotNull ItemStack stack) {
+    public @NotNull Optional<TooltipData> getTooltipData(@NotNull ItemStack stack) {
         List<ItemAndStack<PhotographItem>> photographs = getPhotographs(stack);
         if (photographs.isEmpty())
             return Optional.empty();
@@ -180,17 +180,17 @@ public class StackedPhotographsItem extends Item {
     }
 
     @Override
-    public boolean overrideStackedOnOther(@NotNull ItemStack stack, @NotNull Slot slot, @NotNull ClickAction action, @NotNull Player player) {
-        if (action != ClickAction.SECONDARY || getPhotographsCount(stack) == 0 || !slot.mayPlace(new ItemStack(Exposure.Items.PHOTOGRAPH.get())))
+    public boolean onStackClicked(@NotNull ItemStack stack, @NotNull Slot slot, @NotNull ClickType action, @NotNull PlayerEntity player) {
+        if (action != ClickType.RIGHT || getPhotographsCount(stack) == 0 || !slot.canInsert(new ItemStack(Exposure.Items.PHOTOGRAPH.get())))
             return false;
 
-        ItemStack slotItem = slot.getItem();
+        ItemStack slotItem = slot.getStack();
         if (slotItem.isEmpty()) {
             ItemAndStack<PhotographItem> photograph = removeBottomPhotograph(stack);
-            slot.set(photograph.getStack());
+            slot.setStackNoCallbacks(photograph.getStack());
 
             if (getPhotographsCount(stack) == 1)
-                player.containerMenu.setCarried(removeTopPhotograph(stack).getStack());
+                player.currentScreenHandler.setCursorStack(removeTopPhotograph(stack).getStack());
 
             playRemoveSoundClientside(player);
 
@@ -199,7 +199,7 @@ public class StackedPhotographsItem extends Item {
 
         if (slotItem.getItem() instanceof PhotographItem && canAddPhotograph(stack)) {
             addPhotographToBottom(stack, slotItem);
-            slot.set(ItemStack.EMPTY);
+            slot.setStackNoCallbacks(ItemStack.EMPTY);
 
             playAddSoundClientside(player);
 
@@ -210,8 +210,8 @@ public class StackedPhotographsItem extends Item {
     }
 
     @Override
-    public boolean overrideOtherStackedOnMe(@NotNull ItemStack stack, @NotNull ItemStack other, @NotNull Slot slot, @NotNull ClickAction action, @NotNull Player player, @NotNull SlotAccess access) {
-        if (action != ClickAction.SECONDARY || !slot.mayPlace(new ItemStack(Exposure.Items.PHOTOGRAPH.get())))
+    public boolean onClicked(@NotNull ItemStack stack, @NotNull ItemStack other, @NotNull Slot slot, @NotNull ClickType action, @NotNull PlayerEntity player, @NotNull StackReference access) {
+        if (action != ClickType.RIGHT || !slot.canInsert(new ItemStack(Exposure.Items.PHOTOGRAPH.get())))
             return false;
 
         if (getPhotographsCount(stack) > 0 && other.isEmpty()) {
@@ -220,7 +220,7 @@ public class StackedPhotographsItem extends Item {
 
             if (getPhotographsCount(stack) == 1) {
                 ItemAndStack<PhotographItem> lastPhotograph = removeTopPhotograph(stack);
-                slot.set(lastPhotograph.getStack());
+                slot.setStackNoCallbacks(lastPhotograph.getStack());
             }
 
             playRemoveSoundClientside(player);
@@ -267,42 +267,42 @@ public class StackedPhotographsItem extends Item {
     }
 
     @Override
-    public @NotNull InteractionResult useOn(UseOnContext context) {
-        BlockPos clickedPos = context.getClickedPos();
-        Direction direction = context.getClickedFace();
-        BlockPos resultPos = clickedPos.relative(direction);
-        Player player = context.getPlayer();
-        ItemStack itemInHand = context.getItemInHand();
+    public @NotNull ActionResult useOnBlock(ItemUsageContext context) {
+        BlockPos clickedPos = context.getBlockPos();
+        Direction direction = context.getSide();
+        BlockPos resultPos = clickedPos.offset(direction);
+        PlayerEntity player = context.getPlayer();
+        ItemStack itemInHand = context.getStack();
 
         if (itemInHand.getItem() != this || getPhotographsCount(itemInHand) == 0)
-            return InteractionResult.FAIL;
+            return ActionResult.FAIL;
 
-        if (player == null || player.level().isOutsideBuildHeight(resultPos) || !player.mayUseItemAt(resultPos, direction, itemInHand))
-            return InteractionResult.FAIL;
+        if (player == null || player.getWorld().isOutOfHeightLimit(resultPos) || !player.canPlaceOn(resultPos, direction, itemInHand))
+            return ActionResult.FAIL;
 
-        if (player.isSecondaryUseActive()) {
+        if (player.shouldCancelInteraction()) {
             cyclePhotographs(itemInHand, player);
-            return InteractionResult.SUCCESS;
+            return ActionResult.SUCCESS;
         }
 
         ItemAndStack<PhotographItem> topPhotograph = removeTopPhotograph(itemInHand);
 
-        Level level = context.getLevel();
+        World level = context.getWorld();
         PhotographEntity photographEntity = new PhotographEntity(level, resultPos, direction, topPhotograph.getStack().copy());
 
-        if (photographEntity.survives()) {
-            if (!level.isClientSide) {
-                photographEntity.playPlacementSound();
-                level.gameEvent(player, GameEvent.ENTITY_PLACE, photographEntity.position());
-                level.addFreshEntity(photographEntity);
+        if (photographEntity.canStayAttached()) {
+            if (!level.isClient) {
+                photographEntity.onPlace();
+                level.emitGameEvent(player, GameEvent.ENTITY_PLACE, photographEntity.getPos());
+                level.spawnEntity(photographEntity);
             }
 
             if (!player.isCreative()) {
                 int photographsCount = getPhotographsCount(itemInHand);
                 if (photographsCount == 0)
-                    itemInHand.shrink(1);
+                    itemInHand.decrement(1);
                 else if (photographsCount == 1)
-                    player.setItemInHand(context.getHand(), removeTopPhotograph(itemInHand).getStack());
+                    player.setStackInHand(context.getHand(), removeTopPhotograph(itemInHand).getStack());
             }
             else {
                 // Because in creative you don't get photograph back when breaking Photograph entity,
@@ -314,54 +314,54 @@ public class StackedPhotographsItem extends Item {
             addPhotographOnTop(itemInHand, topPhotograph.getStack());
         }
 
-        return InteractionResult.sidedSuccess(level.isClientSide);
+        return ActionResult.success(level.isClient);
     }
 
     @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, Player player, @NotNull InteractionHand hand) {
-        ItemStack itemInHand = player.getItemInHand(hand);
+    public @NotNull TypedActionResult<ItemStack> use(@NotNull World level, PlayerEntity player, @NotNull Hand hand) {
+        ItemStack itemInHand = player.getStackInHand(hand);
 
-        if (player.isSecondaryUseActive()) {
+        if (player.shouldCancelInteraction()) {
             cyclePhotographs(itemInHand, player);
-            return InteractionResultHolder.success(itemInHand);
+            return TypedActionResult.success(itemInHand);
         }
 
         List<ItemAndStack<PhotographItem>> photographs = getPhotographs(itemInHand);
         if (!photographs.isEmpty()) {
-            if (level.isClientSide) {
+            if (level.isClient) {
                 ClientGUI.openPhotographScreen(photographs);
                 player.playSound(Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), 0.6f, 1.1f);
             }
-            return InteractionResultHolder.success(itemInHand);
+            return TypedActionResult.success(itemInHand);
         }
 
-        return InteractionResultHolder.fail(itemInHand);
+        return TypedActionResult.fail(itemInHand);
     }
 
-    public boolean cyclePhotographs(ItemStack stack, @Nullable Player player) {
+    public boolean cyclePhotographs(ItemStack stack, @Nullable PlayerEntity player) {
         if (getPhotographsCount(stack) < 2)
             return false;
 
         ItemAndStack<PhotographItem> topPhotograph = removeTopPhotograph(stack);
         addPhotographToBottom(stack, topPhotograph.getStack());
         if (player != null) {
-            player.level().playSound(player, player, Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), SoundSource.PLAYERS, 0.6f,
-                player.level().getRandom().nextFloat() * 0.2f + 1.2f);
-            player.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
+            player.getWorld().playSoundFromEntity(player, player, Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), SoundCategory.PLAYERS, 0.6f,
+                player.getWorld().getRandom().nextFloat() * 0.2f + 1.2f);
+            player.emitGameEvent(GameEvent.ITEM_INTERACT_FINISH);
         }
 
         return true;
     }
 
-    public static void playAddSoundClientside(Player player) {
-        if (player.level().isClientSide)
+    public static void playAddSoundClientside(PlayerEntity player) {
+        if (player.getWorld().isClient)
             player.playSound(Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), 0.6f,
-                    player.level().getRandom().nextFloat() * 0.2f + 1.2f);
+                    player.getWorld().getRandom().nextFloat() * 0.2f + 1.2f);
     }
 
-    public static void playRemoveSoundClientside(Player player) {
-        if (player.level().isClientSide)
+    public static void playRemoveSoundClientside(PlayerEntity player) {
+        if (player.getWorld().isClient)
             player.playSound(Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), 0.75f,
-                    player.level().getRandom().nextFloat() * 0.2f + 0.75f);
+                    player.getWorld().getRandom().nextFloat() * 0.2f + 0.75f);
     }
 }

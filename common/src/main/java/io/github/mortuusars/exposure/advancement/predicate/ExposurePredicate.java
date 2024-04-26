@@ -5,41 +5,41 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import io.github.mortuusars.exposure.advancement.BooleanPredicate;
 import io.github.mortuusars.exposure.camera.infrastructure.FrameData;
-import net.minecraft.advancements.critereon.MinMaxBounds;
-import net.minecraft.advancements.critereon.NbtPredicate;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.GsonHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.UUID;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.predicate.NbtPredicate;
+import net.minecraft.predicate.NumberRange;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.JsonHelper;
 
 public class ExposurePredicate {
     public static final ExposurePredicate ANY = new ExposurePredicate(BooleanPredicate.ANY,
-            MinMaxBounds.Doubles.ANY,
-            MinMaxBounds.Doubles.ANY,
+            NumberRange.FloatRange.ANY,
+            NumberRange.FloatRange.ANY,
             NbtPredicate.ANY,
-            MinMaxBounds.Ints.ANY,
-            MinMaxBounds.Ints.ANY,
+            NumberRange.IntRange.ANY,
+            NumberRange.IntRange.ANY,
             EntityInFramePredicate.ANY);
 
     private final BooleanPredicate owner;
-    private final MinMaxBounds.Doubles shutterSpeedMS;
-    private final MinMaxBounds.Doubles focalLength;
+    private final NumberRange.FloatRange shutterSpeedMS;
+    private final NumberRange.FloatRange focalLength;
     private final NbtPredicate nbt;
-    private final MinMaxBounds.Ints lightLevel;
-    private final MinMaxBounds.Ints entitiesInFrameCount;
+    private final NumberRange.IntRange lightLevel;
+    private final NumberRange.IntRange entitiesInFrameCount;
     private final EntityInFramePredicate entityInFrame;
 
     public ExposurePredicate(BooleanPredicate ownerPredicate,
-                             MinMaxBounds.Doubles shutterSpeedMS,
-                             MinMaxBounds.Doubles focalLength,
+                             NumberRange.FloatRange shutterSpeedMS,
+                             NumberRange.FloatRange focalLength,
                              NbtPredicate nbtPredicate,
-                             MinMaxBounds.Ints lightLevel,
-                             MinMaxBounds.Ints entitiesInFrameCount,
+                             NumberRange.IntRange lightLevel,
+                             NumberRange.IntRange entitiesInFrameCount,
                              EntityInFramePredicate entityInFramePredicate) {
         this.owner = ownerPredicate;
         this.shutterSpeedMS = shutterSpeedMS;
@@ -50,20 +50,20 @@ public class ExposurePredicate {
         this.entityInFrame = entityInFramePredicate;
     }
 
-    public boolean matches(ServerPlayer player, CompoundTag tag) {
+    public boolean matches(ServerPlayerEntity player, NbtCompound tag) {
         if (!ownerMatches(player, tag))
             return false;
 
-        if (!shutterSpeedMS.matches(tag.getFloat(FrameData.SHUTTER_SPEED_MS)))
+        if (!shutterSpeedMS.test(tag.getFloat(FrameData.SHUTTER_SPEED_MS)))
             return false;
 
-        if (!focalLength.matches(tag.getFloat(FrameData.FOCAL_LENGTH)))
+        if (!focalLength.test(tag.getFloat(FrameData.FOCAL_LENGTH)))
             return false;
 
-        if (!nbt.matches(tag))
+        if (!nbt.test(tag))
             return false;
 
-        if (!lightLevel.matches(tag.getInt(FrameData.LIGHT_LEVEL)))
+        if (!lightLevel.test(tag.getInt(FrameData.LIGHT_LEVEL)))
             return false;
 
         if (!entitiesMatch(player, tag))
@@ -72,24 +72,24 @@ public class ExposurePredicate {
         return true;
     }
 
-    private boolean ownerMatches(ServerPlayer player, CompoundTag tag) {
+    private boolean ownerMatches(ServerPlayerEntity player, NbtCompound tag) {
         if (owner.equals(BooleanPredicate.ANY))
             return true;
 
-        if (!tag.contains("PhotographerId", Tag.TAG_INT_ARRAY))
+        if (!tag.contains("PhotographerId", NbtElement.INT_ARRAY_TYPE))
             return false;
 
-        UUID photographerId = tag.getUUID("PhotographerId");
-        UUID playerId = player.getUUID();
+        UUID photographerId = tag.getUuid("PhotographerId");
+        UUID playerId = player.getUuid();
 
         return owner.matches(photographerId.equals(playerId));
     }
 
-    private boolean entitiesMatch(ServerPlayer player, CompoundTag tag) {
-        if (tag.contains(FrameData.ENTITIES_IN_FRAME, Tag.TAG_LIST)) {
-            ListTag entities = tag.getList(FrameData.ENTITIES_IN_FRAME, Tag.TAG_COMPOUND);
+    private boolean entitiesMatch(ServerPlayerEntity player, NbtCompound tag) {
+        if (tag.contains(FrameData.ENTITIES_IN_FRAME, NbtElement.LIST_TYPE)) {
+            NbtList entities = tag.getList(FrameData.ENTITIES_IN_FRAME, NbtElement.COMPOUND_TYPE);
 
-            if (!entitiesInFrameCount.matches(entities.size()))
+            if (!entitiesInFrameCount.test(entities.size()))
                 return false;
 
             for (int i = 0; i < entities.size(); i++) {
@@ -98,7 +98,7 @@ public class ExposurePredicate {
             }
         }
         else {
-            return entityInFrame.equals(EntityInFramePredicate.ANY) && entitiesInFrameCount.matches(0);
+            return entityInFrame.equals(EntityInFramePredicate.ANY) && entitiesInFrameCount.test(0);
         }
 
         return false;
@@ -113,20 +113,20 @@ public class ExposurePredicate {
         if (!owner.equals(BooleanPredicate.ANY))
             json.add("owner", owner.serializeToJson());
 
-        if (!shutterSpeedMS.isAny())
-            json.add("shutter_speed_ms", shutterSpeedMS.serializeToJson());
+        if (!shutterSpeedMS.isDummy())
+            json.add("shutter_speed_ms", shutterSpeedMS.toJson());
 
-        if (!focalLength.isAny())
-            json.add("focal_length", focalLength.serializeToJson());
+        if (!focalLength.isDummy())
+            json.add("focal_length", focalLength.toJson());
 
         if (!nbt.equals(NbtPredicate.ANY))
-            json.add("nbt", nbt.serializeToJson());
+            json.add("nbt", nbt.toJson());
 
-        if (!lightLevel.isAny())
-            json.add("light_level", lightLevel.serializeToJson());
+        if (!lightLevel.isDummy())
+            json.add("light_level", lightLevel.toJson());
 
-        if (!entitiesInFrameCount.isAny())
-            json.add("entities_count", entitiesInFrameCount.serializeToJson());
+        if (!entitiesInFrameCount.isDummy())
+            json.add("entities_count", entitiesInFrameCount.toJson());
 
         if (!entityInFrame.equals(EntityInFramePredicate.ANY))
             json.add("entity_in_frame", entityInFrame.serializeToJson());
@@ -138,15 +138,15 @@ public class ExposurePredicate {
         if (json == null || json.isJsonNull())
             return ANY;
 
-        JsonObject jsonobject = GsonHelper.convertToJsonObject(json, "exposure");
+        JsonObject jsonobject = JsonHelper.asObject(json, "exposure");
 
         return new ExposurePredicate(
                 BooleanPredicate.fromJson(jsonobject.get("owner")),
-                MinMaxBounds.Doubles.fromJson(jsonobject.get("shutter_speed_ms")),
-                MinMaxBounds.Doubles.fromJson(jsonobject.get("focal_length")),
+                NumberRange.FloatRange.fromJson(jsonobject.get("shutter_speed_ms")),
+                NumberRange.FloatRange.fromJson(jsonobject.get("focal_length")),
                 NbtPredicate.fromJson(jsonobject.get("nbt")),
-                MinMaxBounds.Ints.fromJson(jsonobject.get("light_level")),
-                MinMaxBounds.Ints.fromJson(jsonobject.get("entities_count")),
+                NumberRange.IntRange.fromJson(jsonobject.get("light_level")),
+                NumberRange.IntRange.fromJson(jsonobject.get("entities_count")),
                 EntityInFramePredicate.fromJson(jsonobject.get("entity_in_frame")));
     }
 

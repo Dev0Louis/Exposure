@@ -3,20 +3,19 @@ package io.github.mortuusars.exposure.camera.capture;
 import com.google.common.collect.ImmutableList;
 import com.mojang.logging.LogUtils;
 import io.github.mortuusars.exposure.camera.infrastructure.FrameData;
-import net.minecraft.nbt.CompoundTag;
-
 import java.util.ArrayList;
 import java.util.Collection;
+import net.minecraft.nbt.NbtCompound;
 
 @SuppressWarnings("unused")
 public class CapturedFramesHistory {
-    private static final ArrayList<CompoundTag> lastExposures = new ArrayList<>();
+    private static final ArrayList<NbtCompound> lastExposures = new ArrayList<>();
     private static int limit = 32;
-    public static Collection<CompoundTag> get() {
+    public static Collection<NbtCompound> get() {
         return ImmutableList.copyOf(lastExposures);
     }
 
-    public static void add(CompoundTag frame) {
+    public static void add(NbtCompound frame) {
         if (frame.getString(FrameData.ID).isEmpty())
             LogUtils.getLogger().warn(frame + " - frame might not be valid. No ID is present.");
 

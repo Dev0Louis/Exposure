@@ -12,47 +12,47 @@ import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
 import io.github.mortuusars.exposure.item.*;
 import io.github.mortuusars.exposure.menu.LightroomMenu;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.NonNullList;
-import net.minecraft.core.Vec3i;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.ContainerHelper;
-import net.minecraft.world.WorldlyContainer;
-import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ContainerData;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.LockableContainerBlockEntity;
+import net.minecraft.entity.ExperienceOrbEntity;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventories;
+import net.minecraft.inventory.SidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.screen.PropertyDelegate;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.text.Text;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.World;
 
 @SuppressWarnings("unused")
-public class LightroomBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
+public class LightroomBlockEntity extends LockableContainerBlockEntity implements SidedInventory {
     public static final int CONTAINER_DATA_SIZE = 3;
     public static final int CONTAINER_DATA_PROGRESS_ID = 0;
     public static final int CONTAINER_DATA_PRINT_TIME_ID = 1;
     public static final int CONTAINER_DATA_SELECTED_FRAME_ID = 2;
 
-    protected final ContainerData containerData = new ContainerData() {
+    protected final PropertyDelegate containerData = new PropertyDelegate() {
         public int get(int id) {
             return switch (id) {
                 case CONTAINER_DATA_PROGRESS_ID -> LightroomBlockEntity.this.progress;
@@ -69,15 +69,15 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
                 LightroomBlockEntity.this.printTime = value;
             else if (id == CONTAINER_DATA_SELECTED_FRAME_ID)
                 LightroomBlockEntity.this.setSelectedFrame(value);
-            setChanged();
+            markDirty();
         }
 
-        public int getCount() {
+        public int size() {
             return CONTAINER_DATA_SIZE;
         }
     };
 
-    protected NonNullList<ItemStack> items = NonNullList.withSize(Lightroom.SLOTS, ItemStack.EMPTY);
+    protected DefaultedList<ItemStack> items = DefaultedList.ofSize(Lightroom.SLOTS, ItemStack.EMPTY);
 
     protected int selectedFrame;
     protected int progress;
@@ -90,7 +90,7 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         super(Exposure.BlockEntityTypes.LIGHTROOM.get(), pos, blockState);
     }
 
-    public static <T extends BlockEntity> void serverTick(Level level, BlockPos blockPos, BlockState blockState, T blockEntity) {
+    public static <T extends BlockEntity> void serverTick(World level, BlockPos blockPos, BlockState blockState, T blockEntity) {
         if (blockEntity instanceof LightroomBlockEntity lightroomBlockEntity)
             lightroomBlockEntity.tick();
     }
@@ -103,9 +103,9 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
 
         if (progress < printTime) {
             progress++;
-            if (progress % 55 == 0 && printTime - progress > 12 && level != null)
-                level.playSound(null, getBlockPos(), Exposure.SoundEvents.LIGHTROOM_PRINT.get(), SoundSource.BLOCKS,
-                        1f, level.getRandom().nextFloat() * 0.3f + 1f);
+            if (progress % 55 == 0 && printTime - progress > 12 && world != null)
+                world.playSound(null, getPos(), Exposure.SoundEvents.LIGHTROOM_PRINT.get(), SoundCategory.BLOCKS,
+                        1f, world.getRandom().nextFloat() * 0.3f + 1f);
             return;
         }
 
@@ -122,7 +122,7 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     }
 
     protected void advanceFrame() {
-        ItemAndStack<DevelopedFilmItem> film = new ItemAndStack<>(getItem(Lightroom.FILM_SLOT));
+        ItemAndStack<DevelopedFilmItem> film = new ItemAndStack<>(getStack(Lightroom.FILM_SLOT));
         int frames = film.getItem().getExposedFramesCount(film.getStack());
 
         if (getSelectedFrameIndex() >= frames - 1) { // On last frame
@@ -130,7 +130,7 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
                 ejectFilm();
         } else {
             setSelectedFrame(getSelectedFrameIndex() + 1);
-            setChanged();
+            markDirty();
         }
     }
 
@@ -139,29 +139,29 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     }
 
     protected boolean canEjectFilm() {
-        if (level == null || level.isClientSide || getItem(Lightroom.FILM_SLOT).isEmpty())
+        if (world == null || world.isClient || getStack(Lightroom.FILM_SLOT).isEmpty())
             return false;
 
-        BlockPos pos = getBlockPos();
-        Direction facing = level.getBlockState(pos).getValue(LightroomBlock.FACING);
+        BlockPos pos = getPos();
+        Direction facing = world.getBlockState(pos).get(LightroomBlock.FACING);
 
-        return !level.getBlockState(pos.relative(facing)).canOcclude();
+        return !world.getBlockState(pos.offset(facing)).isOpaque();
     }
 
     protected void ejectFilm() {
-        if (level == null || level.isClientSide || getItem(Lightroom.FILM_SLOT).isEmpty())
+        if (world == null || world.isClient || getStack(Lightroom.FILM_SLOT).isEmpty())
             return;
 
-        BlockPos pos = getBlockPos();
-        Direction facing = level.getBlockState(pos).getValue(LightroomBlock.FACING);
-        ItemStack filmStack = removeItem(Lightroom.FILM_SLOT, 1);
+        BlockPos pos = getPos();
+        Direction facing = world.getBlockState(pos).get(LightroomBlock.FACING);
+        ItemStack filmStack = removeStack(Lightroom.FILM_SLOT, 1);
 
-        Vec3i normal = facing.getNormal();
-        Vec3 point = Vec3.atCenterOf(pos).add(normal.getX() * 0.75f, normal.getY() * 0.75f, normal.getZ() * 0.75f);
-        ItemEntity itemEntity = new ItemEntity(level, point.x, point.y, point.z, filmStack);
-        itemEntity.setDeltaMovement(normal.getX() * 0.05f, normal.getY() * 0.05f + 0.15f, normal.getZ() * 0.05f);
-        itemEntity.setDefaultPickUpDelay();
-        level.addFreshEntity(itemEntity);
+        Vec3i normal = facing.getVector();
+        Vec3d point = Vec3d.ofCenter(pos).add(normal.getX() * 0.75f, normal.getY() * 0.75f, normal.getZ() * 0.75f);
+        ItemEntity itemEntity = new ItemEntity(world, point.x, point.y, point.z, filmStack);
+        itemEntity.setVelocity(normal.getX() * 0.05f, normal.getY() * 0.05f + 0.15f, normal.getZ() * 0.05f);
+        itemEntity.setToDefaultPickupDelay();
+        world.spawnEntity(itemEntity);
 
         inventoryContentsChanged(Lightroom.FILM_SLOT);
     }
@@ -197,7 +197,7 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
      * @return Process, that will be used to print an image.
      */
     public Lightroom.Process getActualProcess(ItemStack filmStack) {
-        ItemStack film = getItem(Lightroom.FILM_SLOT);
+        ItemStack film = getStack(Lightroom.FILM_SLOT);
 
         if (!isSelectedFrameChromatic(film, getSelectedFrameIndex()))
             return Lightroom.Process.REGULAR;
@@ -208,12 +208,12 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     public void setProcess(Lightroom.Process process) {
         this.process = process;
         stopPrintingProcess();
-        setChanged();
+        markDirty();
     }
 
-    public Optional<CompoundTag> getSelectedFrame(ItemStack film) {
+    public Optional<NbtCompound> getSelectedFrame(ItemStack film) {
         if (!film.isEmpty() && film.getItem() instanceof DevelopedFilmItem developedFilm) {
-            ListTag frames = developedFilm.getExposedFrames(film);
+            NbtList frames = developedFilm.getExposedFrames(film);
             if (frames.size() > getSelectedFrameIndex())
                 return Optional.of(frames.getCompound(selectedFrame));
         }
@@ -231,7 +231,7 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         if (!canPrint())
             return;
 
-        ItemStack filmStack = getItem(Lightroom.FILM_SLOT);
+        ItemStack filmStack = getStack(Lightroom.FILM_SLOT);
         if (!(filmStack.getItem() instanceof DevelopedFilmItem film))
             return;
 
@@ -244,11 +244,11 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
 
         advanceFrame = advanceFrameOnFinish;
 
-        if (level != null) {
-            level.setBlock(getBlockPos(), level.getBlockState(getBlockPos())
-                    .setValue(LightroomBlock.LIT, true), Block.UPDATE_CLIENTS);
-            level.playSound(null, getBlockPos(), Exposure.SoundEvents.LIGHTROOM_PRINT.get(), SoundSource.BLOCKS,
-                    1f, level.getRandom().nextFloat() * 0.3f + 1f);
+        if (world != null) {
+            world.setBlockState(getPos(), world.getBlockState(getPos())
+                    .with(LightroomBlock.LIT, true), Block.NOTIFY_LISTENERS);
+            world.playSound(null, getPos(), Exposure.SoundEvents.LIGHTROOM_PRINT.get(), SoundCategory.BLOCKS,
+                    1f, world.getRandom().nextFloat() * 0.3f + 1f);
         }
     }
 
@@ -256,9 +256,9 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         progress = 0;
         printTime = 0;
         advanceFrame = false;
-        if (level != null && level.getBlockState(getBlockPos()).getBlock() instanceof LightroomBlock)
-            level.setBlock(getBlockPos(), level.getBlockState(getBlockPos())
-                    .setValue(LightroomBlock.LIT, false), Block.UPDATE_CLIENTS);
+        if (world != null && world.getBlockState(getPos()).getBlock() instanceof LightroomBlock)
+            world.setBlockState(getPos(), world.getBlockState(getPos())
+                    .with(LightroomBlock.LIT, false), Block.NOTIFY_LISTENERS);
     }
 
     public boolean isPrinting() {
@@ -269,42 +269,42 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         if (getSelectedFrameIndex() < 0) // Upper bound is checked further down
             return false;
 
-        ItemStack filmStack = getItem(Lightroom.FILM_SLOT);
+        ItemStack filmStack = getStack(Lightroom.FILM_SLOT);
         if (!(filmStack.getItem() instanceof DevelopedFilmItem developedFilm) || !developedFilm.hasExposedFrame(filmStack, getSelectedFrameIndex()))
             return false;
 
         Lightroom.Process process = getActualProcess(filmStack);
 
-        ItemStack paperStack = getItem(Lightroom.PAPER_SLOT);
+        ItemStack paperStack = getStack(Lightroom.PAPER_SLOT);
 
         return isPaperValidForPrint(paperStack, filmStack, process)
                 && hasDyesForPrint(filmStack, paperStack, process)
-                && canOutputToResultSlot(getItem(Lightroom.RESULT_SLOT), filmStack, process);
+                && canOutputToResultSlot(getStack(Lightroom.RESULT_SLOT), filmStack, process);
     }
 
     public boolean canPrintInCreativeMode() {
         if (getSelectedFrameIndex() < 0) // Upper bound is checked further down
             return false;
 
-        ItemStack filmStack = getItem(Lightroom.FILM_SLOT);
+        ItemStack filmStack = getStack(Lightroom.FILM_SLOT);
         if (!(filmStack.getItem() instanceof DevelopedFilmItem developedFilm) || !developedFilm.hasExposedFrame(filmStack, getSelectedFrameIndex()))
             return false;
 
-        return canOutputToResultSlot(getItem(Lightroom.RESULT_SLOT), filmStack, getActualProcess(filmStack));
+        return canOutputToResultSlot(getStack(Lightroom.RESULT_SLOT), filmStack, getActualProcess(filmStack));
     }
 
     protected boolean isPaperValidForPrint(ItemStack paperStack, ItemStack filmStack, Lightroom.Process process) {
         if (paperStack.isEmpty())
             return false;
 
-        return process != Lightroom.Process.REGULAR || paperStack.is(Exposure.Tags.Items.PHOTO_PAPERS);
+        return process != Lightroom.Process.REGULAR || paperStack.isIn(Exposure.Tags.Items.PHOTO_PAPERS);
     }
 
     protected boolean hasDyesForPrint(ItemStack film, ItemStack paper, Lightroom.Process process) {
         int[] dyeSlots = getRequiredDyeSlotsForPrint(film, paper, process);
 
         for (int slot : dyeSlots) {
-            if (getItem(slot).isEmpty())
+            if (getStack(slot).isEmpty())
                 return false;
         }
 
@@ -346,23 +346,23 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     }
 
     public boolean tryPrint() {
-        Preconditions.checkState(level != null && !level.isClientSide, "Cannot be called clientside.");
+        Preconditions.checkState(world != null && !world.isClient, "Cannot be called clientside.");
         if (!canPrint())
             return false;
 
-        ItemStack filmStack = getItem(Lightroom.FILM_SLOT);
+        ItemStack filmStack = getStack(Lightroom.FILM_SLOT);
         if (!(filmStack.getItem() instanceof DevelopedFilmItem developedFilm))
             return false;
 
-        Optional<CompoundTag> selectedFrame = getSelectedFrame(filmStack);
+        Optional<NbtCompound> selectedFrame = getSelectedFrame(filmStack);
         if (selectedFrame.isEmpty()) {
             LogUtils.getLogger().error("Unable to get selected frame '{}' : {}", getSelectedFrameIndex(), filmStack);
             return false;
         }
 
-        CompoundTag frame = selectedFrame.get().copy();
+        NbtCompound frame = selectedFrame.get().copy();
         Lightroom.Process process = getActualProcess(filmStack);
-        ItemStack paperStack = getItem(Lightroom.PAPER_SLOT);
+        ItemStack paperStack = getStack(Lightroom.PAPER_SLOT);
 
         ItemStack printResult = createPrintResult(frame, filmStack, paperStack, process);
         putPrintResultInOutputSlot(printResult);
@@ -370,11 +370,11 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         // Consume items required for printing:
         int[] dyesSlots = getRequiredDyeSlotsForPrint(filmStack, paperStack, process);
         for (int slot : dyesSlots) {
-            getItem(slot).shrink(1);
+            getStack(slot).decrement(1);
         }
-        getItem(Lightroom.PAPER_SLOT).shrink(1);
+        getStack(Lightroom.PAPER_SLOT).decrement(1);
 
-        level.playSound(null, getBlockPos(), Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), SoundSource.PLAYERS, 0.8f, 1f);
+        world.playSound(null, getPos(), Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), SoundCategory.PLAYERS, 0.8f, 1f);
 
         storeExperienceForPrint(filmStack, frame, process, printResult);
 
@@ -383,10 +383,10 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
             String id = frame.getString(FrameData.ID);
             if (!id.isEmpty()) {
                 ExposureServer.getExposureStorage().getOrQuery(id).ifPresent(exposure -> {
-                    CompoundTag properties = exposure.getProperties();
+                    NbtCompound properties = exposure.getProperties();
                     if (!properties.getBoolean(ExposureSavedData.WAS_PRINTED_PROPERTY)) {
                         properties.putBoolean(ExposureSavedData.WAS_PRINTED_PROPERTY, true);
-                        exposure.setDirty();
+                        exposure.markDirty();
                     }
                 });
             }
@@ -395,8 +395,8 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         return true;
     }
 
-    protected void storeExperienceForPrint(ItemStack film, CompoundTag frame, Lightroom.Process process, ItemStack result) {
-        if (level == null)
+    protected void storeExperienceForPrint(ItemStack film, NbtCompound frame, Lightroom.Process process, ItemStack result) {
+        if (world == null)
             return;
 
         int xp = 0;
@@ -410,48 +410,48 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
                     : Config.Common.LIGHTROOM_EXPERIENCE_PER_PRINT_BW.get();
 
         if (xp > 0) {
-            float variability = level.getRandom().nextFloat() * 0.3f + 1f;
+            float variability = world.getRandom().nextFloat() * 0.3f + 1f;
             int variableXp = (int)Math.max(1, Math.ceil(xp * variability));
             storedExperience += variableXp;
         }
     }
 
     public void printInCreativeMode() {
-        Preconditions.checkState(level != null && !level.isClientSide, "Cannot be called clientside.");
+        Preconditions.checkState(world != null && !world.isClient, "Cannot be called clientside.");
         if (!canPrintInCreativeMode())
             return;
 
-        ItemStack filmStack = getItem(Lightroom.FILM_SLOT);
+        ItemStack filmStack = getStack(Lightroom.FILM_SLOT);
         if (!(filmStack.getItem() instanceof DevelopedFilmItem developedFilm))
             return;
 
-        Optional<CompoundTag> selectedFrame = getSelectedFrame(filmStack);
+        Optional<NbtCompound> selectedFrame = getSelectedFrame(filmStack);
         if (selectedFrame.isEmpty()) {
             LogUtils.getLogger().error("Unable to get selected frame '{}' : {}", getSelectedFrameIndex(), filmStack);
             return;
         }
 
-        CompoundTag frame = selectedFrame.get().copy();
+        NbtCompound frame = selectedFrame.get().copy();
         Lightroom.Process process = getActualProcess(filmStack);
-        ItemStack paperStack = getItem(Lightroom.PAPER_SLOT);
+        ItemStack paperStack = getStack(Lightroom.PAPER_SLOT);
 
         ItemStack printResult = createPrintResult(frame, filmStack, paperStack, process);
         putPrintResultInOutputSlot(printResult);
 
         if (process == Lightroom.Process.CHROMATIC)
-            getItem(Lightroom.PAPER_SLOT).shrink(1);
+            getStack(Lightroom.PAPER_SLOT).decrement(1);
 
-        level.playSound(null, getBlockPos(), Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), SoundSource.PLAYERS, 0.8f, 1f);
+        world.playSound(null, getPos(), Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), SoundCategory.PLAYERS, 0.8f, 1f);
 
         if (process != Lightroom.Process.CHROMATIC) { // Chromatics create new exposure. Marking is not needed.
             // Mark exposure as printed
             String id = frame.getString(FrameData.ID);
             if (!id.isEmpty()) {
                 ExposureServer.getExposureStorage().getOrQuery(id).ifPresent(exposure -> {
-                    CompoundTag properties = exposure.getProperties();
+                    NbtCompound properties = exposure.getProperties();
                     if (!properties.getBoolean(ExposureSavedData.WAS_PRINTED_PROPERTY)) {
                         properties.putBoolean(ExposureSavedData.WAS_PRINTED_PROPERTY, true);
-                        exposure.setDirty();
+                        exposure.markDirty();
                     }
                 });
             }
@@ -459,7 +459,7 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     }
 
     protected void putPrintResultInOutputSlot(ItemStack printResult) {
-        ItemStack resultStack = getItem(Lightroom.RESULT_SLOT);
+        ItemStack resultStack = getStack(Lightroom.RESULT_SLOT);
         if (resultStack.isEmpty())
             resultStack = printResult;
         else if (resultStack.getItem() instanceof PhotographItem) {
@@ -474,10 +474,10 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
             LogUtils.getLogger().error("Unexpected item in result slot: " + resultStack);
             return;
         }
-        setItem(Lightroom.RESULT_SLOT, resultStack);
+        setStack(Lightroom.RESULT_SLOT, resultStack);
     }
 
-    protected ItemStack createPrintResult(CompoundTag frame, ItemStack film, ItemStack paper, Lightroom.Process process) {
+    protected ItemStack createPrintResult(NbtCompound frame, ItemStack film, ItemStack paper, Lightroom.Process process) {
         if (!(film.getItem() instanceof IFilmItem filmItem))
             throw new IllegalStateException("Film stack is invalid: " + film);
 
@@ -486,7 +486,7 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         // Type is currently used to decide what dyes are used when copying photograph.
         // Or for quests. Or other purposes. It's important.
         frame.putString(FrameData.TYPE, process == Lightroom.Process.REGULAR
-                ? filmItem.getType().getSerializedName() : FilmType.COLOR.getSerializedName());
+                ? filmItem.getType().asString() : FilmType.COLOR.asString());
 
         if (process == Lightroom.Process.CHROMATIC) {
             ItemAndStack<ChromaticSheetItem> chromaticFragment = new ItemAndStack<>(
@@ -496,22 +496,22 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
             chromaticFragment.getItem().addExposure(chromaticFragment.getStack(), frame);
 
             if (chromaticFragment.getItem().getExposures(chromaticFragment.getStack()).size() >= 3)
-                return chromaticFragment.getItem().finalize(Objects.requireNonNull(level), chromaticFragment.getStack());
+                return chromaticFragment.getItem().finalize(Objects.requireNonNull(world), chromaticFragment.getStack());
 
             return chromaticFragment.getStack();
         }
         else {
             ItemStack photographStack = new ItemStack(Exposure.Items.PHOTOGRAPH.get());
-            photographStack.setTag(frame);
+            photographStack.setNbt(frame);
             return photographStack;
         }
     }
 
-    public void dropStoredExperience(@Nullable Player player) {
-        if (level instanceof ServerLevel serverLevel && storedExperience > 0) {
-            ExperienceOrb.award(serverLevel, Vec3.atCenterOf(getBlockPos()), storedExperience);
+    public void dropStoredExperience(@Nullable PlayerEntity player) {
+        if (world instanceof ServerWorld serverLevel && storedExperience > 0) {
+            ExperienceOrbEntity.spawn(serverLevel, Vec3d.ofCenter(getPos()), storedExperience);
             storedExperience = 0;
-            setChanged();
+            markDirty();
         }
     }
 
@@ -519,23 +519,23 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     // Container
 
     @Override
-    protected @NotNull Component getDefaultName() {
-        return Component.translatable("block.exposure.lightroom");
+    protected @NotNull Text getContainerName() {
+        return Text.translatable("block.exposure.lightroom");
     }
 
     @Override
-    protected @NotNull AbstractContainerMenu createMenu(int containerId, Inventory inventory) {
+    protected @NotNull ScreenHandler createScreenHandler(int containerId, PlayerInventory inventory) {
         return new LightroomMenu(containerId, inventory, this, containerData);
     }
 
     public boolean isItemValidForSlot(int slot, ItemStack stack) {
         if (slot == Lightroom.FILM_SLOT) return stack.getItem() instanceof DevelopedFilmItem;
-        else if (slot == Lightroom.CYAN_SLOT) return stack.is(Exposure.Tags.Items.CYAN_PRINTING_DYES);
-        else if (slot == Lightroom.MAGENTA_SLOT) return stack.is(Exposure.Tags.Items.MAGENTA_PRINTING_DYES);
-        else if (slot == Lightroom.YELLOW_SLOT) return stack.is(Exposure.Tags.Items.YELLOW_PRINTING_DYES);
-        else if (slot == Lightroom.BLACK_SLOT) return stack.is(Exposure.Tags.Items.BLACK_PRINTING_DYES);
+        else if (slot == Lightroom.CYAN_SLOT) return stack.isIn(Exposure.Tags.Items.CYAN_PRINTING_DYES);
+        else if (slot == Lightroom.MAGENTA_SLOT) return stack.isIn(Exposure.Tags.Items.MAGENTA_PRINTING_DYES);
+        else if (slot == Lightroom.YELLOW_SLOT) return stack.isIn(Exposure.Tags.Items.YELLOW_PRINTING_DYES);
+        else if (slot == Lightroom.BLACK_SLOT) return stack.isIn(Exposure.Tags.Items.BLACK_PRINTING_DYES);
         else if (slot == Lightroom.PAPER_SLOT)
-            return stack.is(Exposure.Tags.Items.PHOTO_PAPERS) ||
+            return stack.isIn(Exposure.Tags.Items.PHOTO_PAPERS) ||
                     (stack.getItem() instanceof ChromaticSheetItem chromatic && chromatic.getExposures(stack).size() < 3);
         else if (slot == Lightroom.RESULT_SLOT)
             return stack.getItem() instanceof PhotographItem || stack.getItem() instanceof ChromaticSheetItem;
@@ -546,36 +546,36 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         if (slot == Lightroom.FILM_SLOT)
             setSelectedFrame(0);
 
-        setChanged();
+        markDirty();
     }
 
     @Override
-    public boolean stillValid(@NotNull Player player) {
-        return this.level != null && this.level.getBlockEntity(this.worldPosition) == this
-                && player.distanceToSqr(this.worldPosition.getX() + 0.5D,
-                this.worldPosition.getY() + 0.5D,
-                this.worldPosition.getZ() + 0.5D) <= 64.0D;
+    public boolean canPlayerUse(@NotNull PlayerEntity player) {
+        return this.world != null && this.world.getBlockEntity(this.pos) == this
+                && player.squaredDistanceTo(this.pos.getX() + 0.5D,
+                this.pos.getY() + 0.5D,
+                this.pos.getZ() + 0.5D) <= 64.0D;
     }
 
     @Override
-    public int @NotNull [] getSlotsForFace(@NotNull Direction face) {
+    public int @NotNull [] getAvailableSlots(@NotNull Direction face) {
         return Lightroom.ALL_SLOTS;
     }
 
     @Override
-    public boolean canPlaceItemThroughFace(int index, @NotNull ItemStack itemStack, @Nullable Direction direction) {
+    public boolean canInsert(int index, @NotNull ItemStack itemStack, @Nullable Direction direction) {
         if (direction == Direction.DOWN)
             return false;
-        return canPlaceItem(index, itemStack);
+        return isValid(index, itemStack);
     }
 
     @Override
-    public boolean canPlaceItem(int index, ItemStack stack) {
-        return index != Lightroom.RESULT_SLOT && isItemValidForSlot(index, stack) && super.canPlaceItem(index, stack);
+    public boolean isValid(int index, ItemStack stack) {
+        return index != Lightroom.RESULT_SLOT && isItemValidForSlot(index, stack) && super.isValid(index, stack);
     }
 
     @Override
-    public boolean canTakeItemThroughFace(int index, @NotNull ItemStack pStack, @NotNull Direction direction) {
+    public boolean canExtract(int index, @NotNull ItemStack pStack, @NotNull Direction direction) {
         for (int outputSlot : Lightroom.OUTPUT_SLOTS) {
             if (index == outputSlot)
                 return true;
@@ -586,23 +586,23 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
 
     // Load/Save
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
+    public void readNbt(@NotNull NbtCompound tag) {
+        super.readNbt(tag);
 
-        this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-        ContainerHelper.loadAllItems(tag, this.items);
+        this.items = DefaultedList.ofSize(this.size(), ItemStack.EMPTY);
+        Inventories.readNbt(tag, this.items);
 
         // Backwards compatibility:
-        if (tag.contains("Inventory", Tag.TAG_COMPOUND)) {
-            CompoundTag inventory = tag.getCompound("Inventory");
-            ListTag itemsList = inventory.getList("Items", Tag.TAG_COMPOUND);
+        if (tag.contains("Inventory", NbtElement.COMPOUND_TYPE)) {
+            NbtCompound inventory = tag.getCompound("Inventory");
+            NbtList itemsList = inventory.getList("Items", NbtElement.COMPOUND_TYPE);
 
             for (int i = 0; i < itemsList.size(); i++) {
-                CompoundTag itemTags = itemsList.getCompound(i);
+                NbtCompound itemTags = itemsList.getCompound(i);
                 int slot = itemTags.getInt("Slot");
 
                 if (slot >= 0 && slot < items.size())
-                    items.set(slot, ItemStack.of(itemTags));
+                    items.set(slot, ItemStack.fromNbt(itemTags));
             }
         }
 
@@ -615,9 +615,9 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     }
 
     @Override
-    protected void saveAdditional(@NotNull CompoundTag tag) {
-        super.saveAdditional(tag);
-        ContainerHelper.saveAllItems(tag, items);
+    protected void writeNbt(@NotNull NbtCompound tag) {
+        super.writeNbt(tag);
+        Inventories.writeNbt(tag, items);
         if (getSelectedFrameIndex() > 0)
             tag.putInt("SelectedFrame", getSelectedFrameIndex());
         if (progress > 0)
@@ -629,15 +629,15 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
         if (advanceFrame)
             tag.putBoolean("AdvanceFrame", true);
         if (process != Lightroom.Process.REGULAR)
-            tag.putString("Process", process.getSerializedName());
+            tag.putString("Process", process.asString());
     }
 
-    protected NonNullList<ItemStack> getItems() {
+    protected DefaultedList<ItemStack> getItems() {
         return this.items;
     }
 
     @Override
-    public int getContainerSize() {
+    public int size() {
         return Lightroom.SLOTS;
     }
 
@@ -647,43 +647,43 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
     }
 
     @Override
-    public @NotNull ItemStack getItem(int slot) {
+    public @NotNull ItemStack getStack(int slot) {
         return getItems().get(slot);
     }
 
     @Override
-    public @NotNull ItemStack removeItem(int slot, int amount) {
-        ItemStack itemStack = ContainerHelper.removeItem(getItems(), slot, amount);
+    public @NotNull ItemStack removeStack(int slot, int amount) {
+        ItemStack itemStack = Inventories.splitStack(getItems(), slot, amount);
         if (!itemStack.isEmpty())
             inventoryContentsChanged(slot);
         return itemStack;
     }
 
     @Override
-    public @NotNull ItemStack removeItemNoUpdate(int slot) {
-        return ContainerHelper.takeItem(getItems(), slot);
+    public @NotNull ItemStack removeStack(int slot) {
+        return Inventories.removeStack(getItems(), slot);
     }
 
     @Override
-    public void setItem(int slot, ItemStack stack) {
+    public void setStack(int slot, ItemStack stack) {
         this.getItems().set(slot, stack);
-        if (stack.getCount() > this.getMaxStackSize()) {
-            stack.setCount(this.getMaxStackSize());
+        if (stack.getCount() > this.getMaxCountPerStack()) {
+            stack.setCount(this.getMaxCountPerStack());
         }
         inventoryContentsChanged(slot);
     }
 
     @Override
-    public void clearContent() {
+    public void clear() {
         getItems().clear();
         inventoryContentsChanged(-1);
     }
 
     @Override
-    public void setChanged() {
-        super.setChanged();
-        if (level != null && !level.isClientSide) {
-            level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    public void markDirty() {
+        super.markDirty();
+        if (world != null && !world.isClient) {
+            world.updateListeners(getPos(), getCachedState(), getCachedState(), Block.NOTIFY_LISTENERS);
         }
     }
 
@@ -692,12 +692,12 @@ public class LightroomBlockEntity extends BaseContainerBlockEntity implements Wo
 
     @Override
     @Nullable
-    public ClientboundBlockEntityDataPacket getUpdatePacket() {
-        return ClientboundBlockEntityDataPacket.create(this);
+    public BlockEntityUpdateS2CPacket toUpdatePacket() {
+        return BlockEntityUpdateS2CPacket.create(this);
     }
 
     @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        return saveWithoutMetadata();
+    public @NotNull NbtCompound toInitialChunkDataNbt() {
+        return createNbt();
     }
 }

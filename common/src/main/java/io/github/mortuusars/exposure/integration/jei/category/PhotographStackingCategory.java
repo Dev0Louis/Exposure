@@ -13,23 +13,23 @@ import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class PhotographStackingCategory implements IRecipeCategory<PhotographStackingJeiRecipe> {
-    private static final ResourceLocation TEXTURE = Exposure.resource("textures/gui/jei/photograph_stacking.png");
-    private final Component title;
+    private static final Identifier TEXTURE = Exposure.resource("textures/gui/jei/photograph_stacking.png");
+    private final Text title;
     private final IDrawable background;
     private final IDrawable icon;
     private final IDrawableStatic stackCursor;
     private final IDrawableStatic removeCursor;
 
     public PhotographStackingCategory(IGuiHelper guiHelper) {
-        title = Component.translatable("jei.exposure.photograph_stacking.title");
+        title = Text.translatable("jei.exposure.photograph_stacking.title");
         background = guiHelper.createDrawable(TEXTURE, 0, 0, 109, 38);
         icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(Exposure.Items.STACKED_PHOTOGRAPHS.get()));
 
@@ -38,12 +38,12 @@ public class PhotographStackingCategory implements IRecipeCategory<PhotographSta
     }
 
     @Override
-    public @NotNull List<Component> getTooltipStrings(PhotographStackingJeiRecipe recipe, @NotNull IRecipeSlotsView recipeSlotsView, double mouseX, double mouseY) {
+    public @NotNull List<Text> getTooltipStrings(PhotographStackingJeiRecipe recipe, @NotNull IRecipeSlotsView recipeSlotsView, double mouseX, double mouseY) {
         if (recipe.getType() == PhotographStackingJeiRecipe.STACKING && mouseX >= 10 && mouseX < 38 && mouseY >= 4 && mouseY < 28)
-            return List.of(Component.translatable("jei.exposure.photograph_stacking.stacking.tooltip"));
+            return List.of(Text.translatable("jei.exposure.photograph_stacking.stacking.tooltip"));
 
         if (recipe.getType() == PhotographStackingJeiRecipe.REMOVING && mouseX >= 10 && mouseX < 37 && mouseY >= 13 && mouseY < 35)
-            return List.of(Component.translatable("jei.exposure.photograph_stacking.removing.tooltip"));
+            return List.of(Text.translatable("jei.exposure.photograph_stacking.removing.tooltip"));
 
         return IRecipeCategory.super.getTooltipStrings(recipe, recipeSlotsView, mouseX, mouseY);
     }
@@ -79,7 +79,7 @@ public class PhotographStackingCategory implements IRecipeCategory<PhotographSta
     }
 
     @Override
-    public @NotNull Component getTitle() {
+    public @NotNull Text getTitle() {
         return title;
     }
 

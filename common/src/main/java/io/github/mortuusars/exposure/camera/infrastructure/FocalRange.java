@@ -8,15 +8,15 @@ import com.mojang.logging.LogUtils;
 import io.github.mortuusars.exposure.Config;
 import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.data.Lenses;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.StringIdentifiable;
 
-public final class FocalRange implements StringRepresentable {
+public final class FocalRange implements StringIdentifiable {
     public static final int ALLOWED_MIN = 10;
     public static final int ALLOWED_MAX = 300;
 
@@ -41,13 +41,13 @@ public final class FocalRange implements StringRepresentable {
         this.max = fixedValue;
     }
 
-    public static FocalRange fromNetwork(FriendlyByteBuf buffer) {
+    public static FocalRange fromNetwork(PacketByteBuf buffer) {
         int min = buffer.readInt();
         int max = buffer.readInt();
         return new FocalRange(min, max);
     }
 
-    public void toNetwork(FriendlyByteBuf buffer) {
+    public void write(PacketByteBuf buffer) {
         buffer.writeInt(min);
         buffer.writeInt(max);
     }
@@ -60,7 +60,7 @@ public final class FocalRange implements StringRepresentable {
         if (stack.isEmpty())
             return getDefault();
 
-        if (!stack.is(Exposure.Tags.Items.LENSES)) {
+        if (!stack.isIn(Exposure.Tags.Items.LENSES)) {
             LogUtils.getLogger().error(stack + " is not a valid lens. Should have '#exposure:lenses' tag.");
             return getDefault();
         }
@@ -73,7 +73,7 @@ public final class FocalRange implements StringRepresentable {
     }
 
     @Override
-    public @NotNull String getSerializedName() {
+    public @NotNull String asString() {
         return isPrime() ? Integer.toString(min) : min + "-" + max;
     }
 

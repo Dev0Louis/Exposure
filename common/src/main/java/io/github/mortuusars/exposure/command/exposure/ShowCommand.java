@@ -8,43 +8,42 @@ import io.github.mortuusars.exposure.command.suggestion.ExposureIdSuggestionProv
 import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.client.ShowExposureS2CP;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
-
 import java.util.Optional;
+import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 public class ShowCommand {
-    public static LiteralArgumentBuilder<CommandSourceStack> get() {
-        return Commands.literal("show")
-                .then(Commands.literal("latest")
+    public static LiteralArgumentBuilder<ServerCommandSource> get() {
+        return CommandManager.literal("show")
+                .then(CommandManager.literal("latest")
                         .executes(context -> latest(context.getSource(), false))
-                        .then(Commands.literal("negative")
+                        .then(CommandManager.literal("negative")
                                 .executes(context -> latest(context.getSource(), true))))
-                .then(Commands.literal("id")
-                        .then(Commands.argument("id", StringArgumentType.string())
+                .then(CommandManager.literal("id")
+                        .then(CommandManager.argument("id", StringArgumentType.string())
                                 .suggests(new ExposureIdSuggestionProvider())
                                 .executes(context -> exposureId(context.getSource(),
                                         StringArgumentType.getString(context, "id"), false))
-                                .then(Commands.literal("negative")
+                                .then(CommandManager.literal("negative")
                                         .executes(context -> exposureId(context.getSource(),
                                                 StringArgumentType.getString(context, "id"), true)))))
-                .then(Commands.literal("texture")
-                        .then(Commands.argument("path", new TextureLocationArgument())
+                .then(CommandManager.literal("texture")
+                        .then(CommandManager.argument("path", new TextureLocationArgument())
                                 .executes(context -> texture(context.getSource(),
-                                        ResourceLocationArgument.getId(context, "path"), false))
-                                .then(Commands.literal("negative")
+                                        IdentifierArgumentType.getIdentifier(context, "path"), false))
+                                .then(CommandManager.literal("negative")
                                         .executes(context -> texture(context.getSource(),
-                                                ResourceLocationArgument.getId(context, "path"), true)))));
+                                                IdentifierArgumentType.getIdentifier(context, "path"), true)))));
     }
 
-    private static int latest(CommandSourceStack stack, boolean negative) {
-        ServerPlayer player = stack.getPlayer();
+    private static int latest(ServerCommandSource stack, boolean negative) {
+        ServerPlayerEntity player = stack.getPlayer();
         if (player == null) {
-            stack.sendFailure(Component.translatable("command.exposure.show.error.not_a_player"));
+            stack.sendError(Text.translatable("command.exposure.show.error.not_a_player"));
             return 1;
         }
 
@@ -52,16 +51,16 @@ public class ShowCommand {
         return 0;
     }
 
-    private static int exposureId(CommandSourceStack stack, String id, boolean negative) {
-        ServerPlayer player = stack.getPlayer();
+    private static int exposureId(ServerCommandSource stack, String id, boolean negative) {
+        ServerPlayerEntity player = stack.getPlayer();
         if (player == null) {
-            stack.sendFailure(Component.translatable("command.exposure.show.error.not_a_player"));
+            stack.sendError(Text.translatable("command.exposure.show.error.not_a_player"));
             return 1;
         }
 
         Optional<ExposureSavedData> exposureData = ExposureServer.getExposureStorage().getOrQuery(id);
         if (exposureData.isEmpty()) {
-            stack.sendFailure(Component.translatable("command.exposure.show.error.not_found", id));
+            stack.sendError(Text.translatable("command.exposure.show.error.not_found", id));
             return 0;
         }
 
@@ -72,10 +71,10 @@ public class ShowCommand {
         return 0;
     }
 
-    private static int texture(CommandSourceStack stack, ResourceLocation path, boolean negative) {
-        ServerPlayer player = stack.getPlayer();
+    private static int texture(ServerCommandSource stack, Identifier path, boolean negative) {
+        ServerPlayerEntity player = stack.getPlayer();
         if (player == null) {
-            stack.sendFailure(Component.translatable("command.exposure.show.error.not_a_player"));
+            stack.sendError(Text.translatable("command.exposure.show.error.not_a_player"));
             return 1;
         }
 

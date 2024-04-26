@@ -1,9 +1,9 @@
 package io.github.mortuusars.exposure.util;
 
-import net.minecraft.util.StringRepresentable;
+import net.minecraft.util.StringIdentifiable;
 import org.jetbrains.annotations.NotNull;
 
-public enum Side implements StringRepresentable {
+public enum Side implements StringIdentifiable {
     LEFT(0, "left"),
     RIGHT(1, "right");
 
@@ -20,7 +20,7 @@ public enum Side implements StringRepresentable {
     }
 
     @Override
-    public @NotNull String getSerializedName() {
+    public @NotNull String asString() {
         return name;
     }
 }

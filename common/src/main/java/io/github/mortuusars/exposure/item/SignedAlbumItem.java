@@ -1,20 +1,20 @@
 package io.github.mortuusars.exposure.item;
 
 import io.github.mortuusars.exposure.Config;
-import net.minecraft.ChatFormatting;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.util.StringUtil;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import net.minecraft.client.item.TooltipContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.StringHelper;
+import net.minecraft.world.World;
 
 public class SignedAlbumItem extends AlbumItem {
-    public SignedAlbumItem(Properties properties) {
+    public SignedAlbumItem(Settings properties) {
         super(properties);
     }
 
@@ -24,26 +24,26 @@ public class SignedAlbumItem extends AlbumItem {
     }
 
     @Override
-    public @NotNull Component getName(ItemStack stack) {
-        if (stack.getTag() != null && !StringUtil.isNullOrEmpty(stack.getTag().getString(TAG_TITLE))) {
-            return Component.literal(stack.getTag().getString(TAG_TITLE));
+    public @NotNull Text getName(ItemStack stack) {
+        if (stack.getNbt() != null && !StringHelper.isEmpty(stack.getNbt().getString(TAG_TITLE))) {
+            return Text.literal(stack.getNbt().getString(TAG_TITLE));
         }
         return super.getName(stack);
     }
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltipComponents, TooltipFlag isAdvanced) {
-        if (stack.getTag() != null) {
-            CompoundTag compoundTag = stack.getTag();
+    public void appendTooltip(ItemStack stack, @Nullable World level, List<Text> tooltipComponents, TooltipContext isAdvanced) {
+        if (stack.getNbt() != null) {
+            NbtCompound compoundTag = stack.getNbt();
             String author = compoundTag.getString(TAG_AUTHOR);
-            if (!StringUtil.isNullOrEmpty(author)) {
-                tooltipComponents.add(Component.translatable("gui.exposure.album.by_author", author).withStyle(ChatFormatting.GRAY));
+            if (!StringHelper.isEmpty(author)) {
+                tooltipComponents.add(Text.translatable("gui.exposure.album.by_author", author).formatted(Formatting.GRAY));
             }
         }
-        super.appendHoverText(stack, level, tooltipComponents, isAdvanced);
+        super.appendTooltip(stack, level, tooltipComponents, isAdvanced);
     }
 
     @Override
-    public boolean isFoil(ItemStack stack) {
+    public boolean hasGlint(ItemStack stack) {
         return Config.Client.SIGNED_ALBUM_GLINT.get();
     }
 }

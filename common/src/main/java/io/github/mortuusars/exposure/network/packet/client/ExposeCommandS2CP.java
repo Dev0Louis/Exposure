@@ -4,30 +4,30 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.network.PacketDirection;
 import io.github.mortuusars.exposure.network.handler.ClientPacketsHandler;
 import io.github.mortuusars.exposure.network.packet.IPacket;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record ExposeCommandS2CP(int size) implements IPacket {
-    public static final ResourceLocation ID = Exposure.resource("expose_command");
+    public static final Identifier ID = Exposure.resource("expose_command");
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return ID;
     }
 
-    public FriendlyByteBuf toBuffer(FriendlyByteBuf buffer) {
+    public PacketByteBuf toBuffer(PacketByteBuf buffer) {
         buffer.writeInt(size);
         return buffer;
     }
 
-    public static ExposeCommandS2CP fromBuffer(FriendlyByteBuf buffer) {
+    public static ExposeCommandS2CP fromBuffer(PacketByteBuf buffer) {
         return new ExposeCommandS2CP(buffer.readInt());
     }
 
     @Override
-    public boolean handle(PacketDirection direction, @Nullable Player player) {
+    public boolean handle(PacketDirection direction, @Nullable PlayerEntity player) {
         ClientPacketsHandler.exposeScreenshot(size);
         return true;
     }

@@ -5,23 +5,23 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.item.PhotographItem;
-import net.minecraft.core.NonNullList;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.inventory.CraftingContainer;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.inventory.RecipeInputInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.WrittenBookItem;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.recipe.ShapedRecipe;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.JsonHelper;
+import net.minecraft.util.collection.DefaultedList;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
 public class PhotographCopyingRecipe extends AbstractNbtTransferringRecipe {
-    public PhotographCopyingRecipe(ResourceLocation id, Ingredient transferIngredient, NonNullList<Ingredient> ingredients, ItemStack result) {
+    public PhotographCopyingRecipe(Identifier id, Ingredient transferIngredient, DefaultedList<Ingredient> ingredients, ItemStack result) {
         super(id, transferIngredient, ingredients, result);
     }
 
@@ -33,9 +33,9 @@ public class PhotographCopyingRecipe extends AbstractNbtTransferringRecipe {
     @Override
     public @NotNull ItemStack transferNbt(ItemStack photographStack, ItemStack recipeResultStack) {
         if (photographStack.getItem() instanceof PhotographItem
-                && photographStack.hasTag() && WrittenBookItem.getGeneration(photographStack) < 2) {
+                && photographStack.hasNbt() && WrittenBookItem.getGeneration(photographStack) < 2) {
             ItemStack result = super.transferNbt(photographStack, recipeResultStack);
-            CompoundTag resultTag = result.getOrCreateTag();
+            NbtCompound resultTag = result.getOrCreateNbt();
             resultTag.putInt("generation", Math.min(WrittenBookItem.getGeneration(result) + 1, 2));
             return result;
         }
@@ -43,13 +43,13 @@ public class PhotographCopyingRecipe extends AbstractNbtTransferringRecipe {
         return ItemStack.EMPTY;
     }
 
-    public @NotNull NonNullList<ItemStack> getRemainingItems(CraftingContainer pInv) {
-        NonNullList<ItemStack> nonnulllist = NonNullList.withSize(pInv.getContainerSize(), ItemStack.EMPTY);
+    public @NotNull DefaultedList<ItemStack> getRemainder(RecipeInputInventory pInv) {
+        DefaultedList<ItemStack> nonnulllist = DefaultedList.ofSize(pInv.size(), ItemStack.EMPTY);
 
         for(int i = 0; i < nonnulllist.size(); ++i) {
-            ItemStack itemstack = pInv.getItem(i);
-            if (itemstack.getItem().hasCraftingRemainingItem()) {
-                nonnulllist.set(i, new ItemStack(Objects.requireNonNull(itemstack.getItem().getCraftingRemainingItem())));
+            ItemStack itemstack = pInv.getStack(i);
+            if (itemstack.getItem().hasRecipeRemainder()) {
+                nonnulllist.set(i, new ItemStack(Objects.requireNonNull(itemstack.getItem().getRecipeRemainder())));
             } else if (itemstack.getItem() instanceof PhotographItem) {
                 ItemStack itemstack1 = itemstack.copy();
                 itemstack1.setCount(1);
@@ -62,10 +62,10 @@ public class PhotographCopyingRecipe extends AbstractNbtTransferringRecipe {
 
     public static class Serializer implements RecipeSerializer<PhotographCopyingRecipe> {
         @Override
-        public @NotNull PhotographCopyingRecipe fromJson(ResourceLocation recipeId, JsonObject serializedRecipe) {
-            Ingredient photographIngredient = Ingredient.fromJson(GsonHelper.getNonNull(serializedRecipe, "photograph"));
-            NonNullList<Ingredient> ingredients = getIngredients(GsonHelper.getAsJsonArray(serializedRecipe, "ingredients"));
-            ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(serializedRecipe, "result"));
+        public @NotNull PhotographCopyingRecipe read(Identifier recipeId, JsonObject serializedRecipe) {
+            Ingredient photographIngredient = Ingredient.fromJson(JsonHelper.getElement(serializedRecipe, "photograph"));
+            DefaultedList<Ingredient> ingredients = getIngredients(JsonHelper.getArray(serializedRecipe, "ingredients"));
+            ItemStack result = ShapedRecipe.outputFromJson(JsonHelper.getObject(serializedRecipe, "result"));
 
             if (photographIngredient.isEmpty())
                 throw new JsonParseException("Recipe should have 'photograph' ingredient.");
@@ -74,28 +74,28 @@ public class PhotographCopyingRecipe extends AbstractNbtTransferringRecipe {
         }
 
         @Override
-        public @NotNull PhotographCopyingRecipe fromNetwork(ResourceLocation recipeId, FriendlyByteBuf buffer) {
-            Ingredient transferredIngredient = Ingredient.fromNetwork(buffer);
+        public @NotNull PhotographCopyingRecipe read(Identifier recipeId, PacketByteBuf buffer) {
+            Ingredient transferredIngredient = Ingredient.fromPacket(buffer);
             int ingredientsCount = buffer.readVarInt();
-            NonNullList<Ingredient> ingredients = NonNullList.withSize(ingredientsCount, Ingredient.EMPTY);
-            ingredients.replaceAll(ignored -> Ingredient.fromNetwork(buffer));
-            ItemStack result = buffer.readItem();
+            DefaultedList<Ingredient> ingredients = DefaultedList.ofSize(ingredientsCount, Ingredient.EMPTY);
+            ingredients.replaceAll(ignored -> Ingredient.fromPacket(buffer));
+            ItemStack result = buffer.readItemStack();
 
             return new PhotographCopyingRecipe(recipeId, transferredIngredient, ingredients, result);
         }
 
         @Override
-        public void toNetwork(FriendlyByteBuf buffer, PhotographCopyingRecipe recipe) {
-            recipe.getTransferIngredient().toNetwork(buffer);
+        public void write(PacketByteBuf buffer, PhotographCopyingRecipe recipe) {
+            recipe.getTransferIngredient().write(buffer);
             buffer.writeVarInt(recipe.getIngredients().size());
             for (Ingredient ingredient : recipe.getIngredients()) {
-                ingredient.toNetwork(buffer);
+                ingredient.write(buffer);
             }
-            buffer.writeItem(recipe.getResult());
+            buffer.writeItemStack(recipe.getResult());
         }
 
-        private NonNullList<Ingredient> getIngredients(JsonArray jsonArray) {
-            NonNullList<Ingredient> ingredients = NonNullList.create();
+        private DefaultedList<Ingredient> getIngredients(JsonArray jsonArray) {
+            DefaultedList<Ingredient> ingredients = DefaultedList.of();
 
             for (int i = 0; i < jsonArray.size(); ++i) {
                 Ingredient ingredient = Ingredient.fromJson(jsonArray.get(i));

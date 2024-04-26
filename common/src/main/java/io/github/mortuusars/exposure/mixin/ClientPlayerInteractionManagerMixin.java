@@ -16,9 +16,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ClientPlayerInteractionManager.class)
-public abstract class MultiPlayerGameModeMixin {
-    @Inject(method = "interactAt", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/EntityHitResult;getLocation()Lnet/minecraft/world/phys/Vec3;"),
+public abstract class ClientPlayerInteractionManagerMixin {
+    @Inject(method = "interactEntityAtLocation", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/util/hit/EntityHitResult;getPos()Lnet/minecraft/util/math/Vec3d;"),
             cancellable = true)
     void onInteractAt(PlayerEntity player, Entity target, EntityHitResult ray, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         ClientPlayerInteractionManager gameMode = MinecraftClient.getInstance().interactionManager;
@@ -29,8 +29,8 @@ public abstract class MultiPlayerGameModeMixin {
         }
     }
 
-    @Inject(method = "useItemOn", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/multiplayer/ClientLevel;getWorldBorder()Lnet/minecraft/world/level/border/WorldBorder;"),
+    @Inject(method = "interactBlock", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/world/ClientWorld;getWorldBorder()Lnet/minecraft/world/border/WorldBorder;"),
             cancellable = true)
     void onUseItemOn(ClientPlayerEntity player, Hand hand, BlockHitResult result, CallbackInfoReturnable<ActionResult> cir) {
         ClientPlayerInteractionManager gameMode = MinecraftClient.getInstance().interactionManager;

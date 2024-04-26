@@ -6,29 +6,29 @@ import io.github.mortuusars.exposure.camera.infrastructure.CompositionGuide;
 import io.github.mortuusars.exposure.camera.infrastructure.CompositionGuides;
 import io.github.mortuusars.exposure.camera.infrastructure.SynchronizedCameraInHandActions;
 import io.github.mortuusars.exposure.util.CameraInHand;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.client.sounds.SoundManager;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.client.sound.SoundManager;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 public class CompositionGuideButton extends CycleButton {
     private final List<CompositionGuide> guides;
 
-    public CompositionGuideButton(Screen screen, int x, int y, int width, int height, int u, int v,  ResourceLocation texture) {
+    public CompositionGuideButton(Screen screen, int x, int y, int width, int height, int u, int v,  Identifier texture) {
         super(screen, x, y, width, height, u, v, height, texture);
         guides = CompositionGuides.getGuides();
 
-        CameraInHand camera = CameraInHand.getActive(Minecraft.getInstance().player);
+        CameraInHand camera = CameraInHand.getActive(MinecraftClient.getInstance().player);
         Preconditions.checkState(!camera.isEmpty(), "Player must hold an active camera at this point.");
         CompositionGuide guide = camera.getItem().getCompositionGuide(camera.getStack());
 
@@ -46,27 +46,27 @@ public class CompositionGuideButton extends CycleButton {
 
     @Override
     public void playDownSound(SoundManager handler) {
-        handler.play(SimpleSoundInstance.forUI(Exposure.SoundEvents.CAMERA_BUTTON_CLICK.get(),
-                Objects.requireNonNull(Minecraft.getInstance().level).random.nextFloat() * 0.15f + 0.93f, 0.7f));
+        handler.play(PositionedSoundInstance.master(Exposure.SoundEvents.CAMERA_BUTTON_CLICK.get(),
+                Objects.requireNonNull(MinecraftClient.getInstance().world).random.nextFloat() * 0.15f + 0.93f, 0.7f));
     }
 
     @Override
-    public void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+    public void renderButton(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
 
         // Icon
-        guiGraphics.blit(Exposure.resource("textures/gui/viewfinder/icon/composition_guide/" + guides.get(currentIndex).getId() + ".png"),
+        guiGraphics.drawTexture(Exposure.resource("textures/gui/viewfinder/icon/composition_guide/" + guides.get(currentIndex).getId() + ".png"),
                 getX(), getY() + 4, 0, 0, 0, 15, 14, 15, 14);
     }
 
     @Override
-    public void renderToolTip(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        guiGraphics.renderTooltip(Minecraft.getInstance().font, List.of(Component.translatable("gui.exposure.viewfinder.composition_guide.tooltip"),
-                ((MutableComponent) getMessage()).withStyle(ChatFormatting.GRAY)), Optional.empty(), mouseX, mouseY);
+    public void renderToolTip(@NotNull DrawContext guiGraphics, int mouseX, int mouseY) {
+        guiGraphics.drawTooltip(MinecraftClient.getInstance().textRenderer, List.of(Text.translatable("gui.exposure.viewfinder.composition_guide.tooltip"),
+                ((MutableText) getMessage()).formatted(Formatting.GRAY)), Optional.empty(), mouseX, mouseY);
     }
 
     @Override
-    public @NotNull Component getMessage() {
+    public @NotNull Text getMessage() {
         return guides.get(currentIndex).translate();
     }
 

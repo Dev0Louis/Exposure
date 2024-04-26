@@ -1,6 +1,6 @@
 package io.github.mortuusars.exposure.render.modifiers;
 
-import net.minecraft.util.Mth;
+import net.minecraft.util.math.MathHelper;
 
 @SuppressWarnings("ClassCanBeRecord")
 public class NegativeFilmPixelModifier implements IPixelModifier {
@@ -25,7 +25,7 @@ public class NegativeFilmPixelModifier implements IPixelModifier {
         if (simulateFilmTransparency) {
             // Modify opacity to make lighter colors transparent, like in real film.
             int brightness = (blue + green + red) / 3;
-            int opacity = (int) Mth.clamp(brightness * 1.5f, 0, 255);
+            int opacity = (int) MathHelper.clamp(brightness * 1.5f, 0, 255);
             alpha = (alpha * opacity) / 255;
         }
 

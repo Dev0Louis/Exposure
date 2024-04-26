@@ -1,12 +1,12 @@
 package io.github.mortuusars.exposure.camera.capture.component;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.logging.LogUtils;
 import io.github.mortuusars.exposure.Config;
 import io.github.mortuusars.exposure.camera.capture.Capture;
 import io.github.mortuusars.exposure.util.CameraInHand;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.texture.NativeImage;
 
 public class FlashComponent implements ICaptureComponent {
     @Override
@@ -30,7 +30,7 @@ public class FlashComponent implements ICaptureComponent {
 
     @Override
     public void screenshotTaken(Capture capture, NativeImage screenshot) {
-        LocalPlayer player = Minecraft.getInstance().player;
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player == null)
             return;
 

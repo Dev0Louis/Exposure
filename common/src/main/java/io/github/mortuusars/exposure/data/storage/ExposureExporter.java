@@ -6,12 +6,12 @@ import io.github.mortuusars.exposure.data.ExposureSize;
 import io.github.mortuusars.exposure.render.modifiers.ExposurePixelModifiers;
 import io.github.mortuusars.exposure.render.modifiers.IPixelModifier;
 import io.github.mortuusars.exposure.util.ColorUtils;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.material.MapColor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.imageio.ImageIO;
+import net.minecraft.block.MapColor;
+import net.minecraft.nbt.NbtCompound;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -76,7 +76,7 @@ public class ExposureExporter {
         return save(data.getPixels(), data.getWidth(), data.getHeight(), data.getProperties());
     }
 
-    public boolean save(byte[] mapColorPixels, int width, int height, CompoundTag properties) {
+    public boolean save(byte[] mapColorPixels, int width, int height, NbtCompound properties) {
         BufferedImage image;
 
         try {
@@ -90,14 +90,14 @@ public class ExposureExporter {
         return save(image, properties);
     }
 
-    public boolean save(BufferedImage image, CompoundTag properties) {
+    public boolean save(BufferedImage image, NbtCompound properties) {
         try {
             File outputFile = new File(folder + "/" + (worldName != null ? worldName + "/" : "") + name + ".png");
             // Existing file would be overwritten
             boolean ignored = outputFile.mkdirs();
             ImageIO.write(image, "png", outputFile);
 
-            if (properties.contains(ExposureSavedData.TIMESTAMP_PROPERTY, CompoundTag.TAG_LONG)) {
+            if (properties.contains(ExposureSavedData.TIMESTAMP_PROPERTY, NbtCompound.LONG_TYPE)) {
                 long unixSeconds = properties.getLong(ExposureSavedData.TIMESTAMP_PROPERTY);
                 trySetFileCreationDate(outputFile.getAbsolutePath(), unixSeconds);
             }
@@ -123,12 +123,12 @@ public class ExposureExporter {
     }
 
     @NotNull
-    protected BufferedImage convertToBufferedImage(byte[] MapColorPixels, int width, int height, CompoundTag properties) {
+    protected BufferedImage convertToBufferedImage(byte[] MapColorPixels, int width, int height, NbtCompound properties) {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                int bgr = MapColor.getColorFromPackedId(MapColorPixels[x + y * width]); // Mojang returns BGR color
+                int bgr = MapColor.getRenderColor(MapColorPixels[x + y * width]); // Mojang returns BGR color
                 bgr = modifier.modifyPixel(bgr);
 
                 // Tint image like it's rendered in LightroomScreen or NegativeExposureScreen:

@@ -3,23 +3,23 @@ package io.github.mortuusars.exposure.gui.screen.album;
 import io.github.mortuusars.exposure.gui.screen.element.textbox.TextBox;
 import io.github.mortuusars.exposure.menu.AlbumMenu;
 import io.github.mortuusars.exposure.menu.LecternAlbumMenu;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ContainerListener;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.ScreenHandlerListener;
+import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.Text;
 
 public class LecternAlbumScreen extends AlbumScreen {
     private final LecternAlbumMenu menu;
 
-    private final ContainerListener listener = new ContainerListener() {
-        public void slotChanged(AbstractContainerMenu containerToSend, int dataSlotIndex, ItemStack stack) { }
+    private final ScreenHandlerListener listener = new ScreenHandlerListener() {
+        public void onSlotUpdate(ScreenHandler containerToSend, int dataSlotIndex, ItemStack stack) { }
 
-        public void dataChanged(AbstractContainerMenu containerMenu, int dataSlotIndex, int value) {
+        public void onPropertyUpdate(ScreenHandler containerMenu, int dataSlotIndex, int value) {
             if (dataSlotIndex == 1) {
-                getMenu().setCurrentSpreadIndex(value);
+                getScreenHandler().setCurrentSpreadIndex(value);
                 pager.setPage(value);
                 for (Page page : pages) {
                     page.noteWidget
@@ -30,26 +30,26 @@ public class LecternAlbumScreen extends AlbumScreen {
         }
     };
 
-    public LecternAlbumScreen(AlbumMenu menu, Inventory playerInventory, Component title) {
+    public LecternAlbumScreen(AlbumMenu menu, PlayerInventory playerInventory, Text title) {
         super(menu, playerInventory, title);
         this.menu = (LecternAlbumMenu) menu;
-        menu.addSlotListener(listener);
+        menu.addListener(listener);
     }
 
     @Override
     protected void init() {
         super.init();
 
-        if (player.mayBuild()) {
-            addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> this.onClose())
-                    .bounds(this.width / 2 - 100, topPos + 196, 98, 20).build());
-            addRenderableWidget(Button.builder(Component.translatable("lectern.take_book"), b -> sendButtonClick(LecternAlbumMenu.TAKE_BOOK_BUTTON))
-                    .bounds(this.width / 2 + 2, topPos + 196, 98, 20).build());
+        if (player.canModifyBlocks()) {
+            addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, b -> this.close())
+                    .dimensions(this.width / 2 - 100, y + 196, 98, 20).build());
+            addDrawableChild(ButtonWidget.builder(Text.translatable("lectern.take_book"), b -> sendButtonClick(LecternAlbumMenu.TAKE_BOOK_BUTTON))
+                    .dimensions(this.width / 2 + 2, y + 196, 98, 20).build());
         }
     }
 
     public void removed() {
         super.removed();
-        this.menu.removeSlotListener(this.listener);
+        this.menu.removeListener(this.listener);
     }
 }

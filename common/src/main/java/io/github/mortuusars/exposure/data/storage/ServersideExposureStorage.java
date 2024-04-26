@@ -4,7 +4,7 @@ import com.mojang.logging.LogUtils;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.client.ExposureChangedS2CP;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.level.storage.DimensionDataStorage;
+import net.minecraft.world.PersistentStateManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -19,17 +19,17 @@ import java.util.function.Supplier;
 public class ServersideExposureStorage implements IServersideExposureStorage {
     private static final String EXPOSURE_DIR = "exposures";
 
-    private final Supplier<DimensionDataStorage> levelStorageSupplier;
+    private final Supplier<PersistentStateManager> levelStorageSupplier;
     private final Supplier<Path> worldPathSupplier;
 
-    public ServersideExposureStorage(Supplier<DimensionDataStorage> levelStorageSupplier, Supplier<Path> worldPathSupplier) {
+    public ServersideExposureStorage(Supplier<PersistentStateManager> levelStorageSupplier, Supplier<Path> worldPathSupplier) {
         this.levelStorageSupplier = levelStorageSupplier;
         this.worldPathSupplier = worldPathSupplier;
     }
 
     @Override
     public Optional<ExposureSavedData> getOrQuery(String id) {
-        DimensionDataStorage dataStorage = levelStorageSupplier.get();
+        PersistentStateManager dataStorage = levelStorageSupplier.get();
         @Nullable ExposureSavedData loadedExposureData = dataStorage.get(ExposureSavedData::load, getSaveId(id));
 
         if (loadedExposureData == null)
@@ -41,9 +41,9 @@ public class ServersideExposureStorage implements IServersideExposureStorage {
     @Override
     public void put(String id, ExposureSavedData data) {
         if (createStorageDirectory()) {
-            DimensionDataStorage dataStorage = levelStorageSupplier.get();
+            PersistentStateManager dataStorage = levelStorageSupplier.get();
             dataStorage.set(getSaveId(id), data);
-            data.setDirty();
+            data.markDirty();
         }
     }
 

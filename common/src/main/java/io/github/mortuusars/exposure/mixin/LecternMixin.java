@@ -4,18 +4,18 @@ import io.github.mortuusars.exposure.PlatformHelper;
 import io.github.mortuusars.exposure.item.AlbumItem;
 import io.github.mortuusars.exposure.menu.LecternAlbumMenu;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.stats.Stats;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.LecternBlock;
-import net.minecraft.world.level.block.entity.LecternBlockEntity;
+import net.minecraft.block.LecternBlock;
+import net.minecraft.block.entity.LecternBlockEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.stat.Stats;
+import net.minecraft.text.Text;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -26,35 +26,35 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LecternBlock.class)
 public abstract class LecternMixin {
     @Inject(method = "openScreen", at = @At(value = "HEAD"), cancellable = true)
-    private void openScreen(Level level, BlockPos pos, Player player, CallbackInfo ci) {
+    private void openScreen(World level, BlockPos pos, PlayerEntity player, CallbackInfo ci) {
         if (level.getBlockEntity(pos) instanceof LecternBlockEntity lecternBlockEntity
-                && player instanceof ServerPlayer serverPlayer
+                && player instanceof ServerPlayerEntity serverPlayer
                 && lecternBlockEntity.getBook().getItem() instanceof AlbumItem) {
             exposure$open(serverPlayer, lecternBlockEntity, lecternBlockEntity.getBook());
-            player.awardStat(Stats.INTERACT_WITH_LECTERN);
+            player.incrementStat(Stats.INTERACT_WITH_LECTERN);
             ci.cancel();
         }
     }
 
     @Unique
-    private void exposure$open(ServerPlayer player, LecternBlockEntity lecternBlockEntity, ItemStack albumStack) {
-        MenuProvider menuProvider = new MenuProvider() {
+    private void exposure$open(ServerPlayerEntity player, LecternBlockEntity lecternBlockEntity, ItemStack albumStack) {
+        NamedScreenHandlerFactory menuProvider = new NamedScreenHandlerFactory() {
             @Override
-            public @NotNull Component getDisplayName() {
-                return albumStack.getHoverName();
+            public @NotNull Text getDisplayName() {
+                return albumStack.getName();
             }
 
             @Override
-            public @NotNull AbstractContainerMenu createMenu(int containerId, @NotNull Inventory playerInventory, @NotNull Player player) {
+            public @NotNull ScreenHandler createMenu(int containerId, @NotNull PlayerInventory playerInventory, @NotNull PlayerEntity player) {
                 LecternBlockEntityAccessor accessor = (LecternBlockEntityAccessor) lecternBlockEntity;
-                return new LecternAlbumMenu(containerId, lecternBlockEntity.getBlockPos(), playerInventory,
-                        new ItemAndStack<>(albumStack), accessor.getBookAccess(), accessor.getDataAccess());
+                return new LecternAlbumMenu(containerId, lecternBlockEntity.getPos(), playerInventory,
+                        new ItemAndStack<>(albumStack), accessor.getInventory(), accessor.getPropertyDelegate());
             }
         };
 
         PlatformHelper.openMenu(player, menuProvider, buffer -> {
-            buffer.writeBlockPos(lecternBlockEntity.getBlockPos());
-            buffer.writeItem(albumStack);
+            buffer.writeBlockPos(lecternBlockEntity.getPos());
+            buffer.writeItemStack(albumStack);
         });
     }
 }

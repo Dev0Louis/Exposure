@@ -2,11 +2,6 @@ package io.github.mortuusars.exposure.gui.screen.element.textbox;
 
 import io.github.mortuusars.exposure.util.Pos2i;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import net.minecraft.client.StringSplitter;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -15,6 +10,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import net.minecraft.client.font.TextHandler;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.util.math.Rect2i;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
 
 public class DisplayCache {
     public String fullText = "";
@@ -31,8 +31,8 @@ public class DisplayCache {
     public int height;
     public HorizontalAlignment alignment = HorizontalAlignment.LEFT;
 
-    public int getIndexAtPosition(Font font, Pos2i cursorPosition) {
-        int lineIndex = cursorPosition.y / font.lineHeight;
+    public int getIndexAtPosition(TextRenderer font, Pos2i cursorPosition) {
+        int lineIndex = cursorPosition.y / font.fontHeight;
 
         if (lineIndex < 0)
             return 0;
@@ -41,8 +41,8 @@ public class DisplayCache {
 
         LineInfo lineInfo = this.lines[lineIndex];
 
-        return this.lineStarts[lineIndex] + font.getSplitter()
-                .plainIndexAtWidth(lineInfo.contents, cursorPosition.x - lineInfo.x, lineInfo.style);
+        return this.lineStarts[lineIndex] + font.getTextHandler()
+                .getTrimmedLength(lineInfo.contents, cursorPosition.x - lineInfo.x, lineInfo.style);
     }
 
     public int changeLine(int xChange, int yChange) {
@@ -77,7 +77,7 @@ public class DisplayCache {
         return i;
     }
 
-    public void rebuild(Font font, String text, int cursorIndex, int selectionIndex, int x, int y, int width, int height,
+    public void rebuild(TextRenderer font, String text, int cursorIndex, int selectionIndex, int x, int y, int width, int height,
                         HorizontalAlignment alignment) {
         this.x = x;
         this.y = y;
@@ -89,7 +89,7 @@ public class DisplayCache {
 
         if (text.isEmpty()) {
             this.fullText = "";
-            this.cursorPos = new Pos2i(alignment.align(width, font.width("_")), 0);
+            this.cursorPos = new Pos2i(alignment.align(width, font.getWidth("_")), 0);
             this.cursorAtEnd = true;
             this.lineStarts = new int[]{0};
             this.lines = new LineInfo[]{LineInfo.EMPTY};
@@ -102,24 +102,24 @@ public class DisplayCache {
         MutableInt linesCount = new MutableInt();
         MutableBoolean endsOnNewLine = new MutableBoolean();
 
-        StringSplitter stringSplitter = font.getSplitter();
-        stringSplitter.splitLines(text, width, Style.EMPTY, true, (style, lineStartIndex, lineEndIndex) -> {
+        TextHandler stringSplitter = font.getTextHandler();
+        stringSplitter.wrapLines(text, width, Style.EMPTY, true, (style, lineStartIndex, lineEndIndex) -> {
             int lineIndex = linesCount.getAndIncrement();
             String lineText = text.substring(lineStartIndex, lineEndIndex);
             endsOnNewLine.setValue(lineText.endsWith("\n"));
             lineText = StringUtils.stripEnd(lineText, "\n");
 
-            int contentWidth = (int) stringSplitter.stringWidth(lineText);
+            int contentWidth = (int) stringSplitter.getWidth(lineText);
             int lineXPos = alignment.align(width, contentWidth);
-            int lineYPos = lineIndex * font.lineHeight;
+            int lineYPos = lineIndex * font.fontHeight;
 
             lineStartIndexes.add(lineStartIndex);
 
-            lines.add(new DisplayCache.LineInfo(style, lineText, lineXPos, lineYPos, contentWidth, font.lineHeight));
+            lines.add(new LineInfo(style, lineText, lineXPos, lineYPos, contentWidth, font.fontHeight));
         });
 
         this.fullText = text;
-        this.lines = lines.toArray(DisplayCache.LineInfo[]::new);
+        this.lines = lines.toArray(LineInfo[]::new);
 
         int cursorX;
         Pos2i newCursorPos;
@@ -127,14 +127,14 @@ public class DisplayCache {
         boolean isCursorAtTextEnd = cursorIndex == text.length();
 
         if (isCursorAtTextEnd && endsOnNewLine.isTrue()) {
-            newCursorPos = new Pos2i(alignment.align(this.width, font.width("_")), lines.size() * font.lineHeight);
+            newCursorPos = new Pos2i(alignment.align(this.width, font.getWidth("_")), lines.size() * font.fontHeight);
         } else {
             int lineIndex = findLineFromPos(lineStartIndexesArray, cursorIndex);
             LineInfo line = lines.get(lineIndex);
 
             String lineTextToCursor = text.substring(lineStartIndexesArray[lineIndex], cursorIndex);
 
-            cursorX = line.x + (int)stringSplitter.stringWidth(lineTextToCursor);
+            cursorX = line.x + (int)stringSplitter.getWidth(lineTextToCursor);
             newCursorPos = new Pos2i(cursorX, line.y);
         }
 
@@ -148,7 +148,7 @@ public class DisplayCache {
         this.selectionAreas = selections.toArray(Rect2i[]::new);
     }
 
-    private List<Rect2i> createSelectionAreas(Font font, String fullText, LineInfo[] lines, int cursorPos, int selectionPos, StringSplitter stringSplitter, int[] lineStartIndexesArray) {
+    private List<Rect2i> createSelectionAreas(TextRenderer font, String fullText, LineInfo[] lines, int cursorPos, int selectionPos, TextHandler stringSplitter, int[] lineStartIndexesArray) {
         int startIndex = Math.min(cursorPos, selectionPos);
         int endIndex = Math.max(cursorPos, selectionPos);
         int lineAtStart = findLineFromPos(lineStartIndexesArray, startIndex);
@@ -165,12 +165,12 @@ public class DisplayCache {
                     Math.max(startIndex, lineStartIndex),
                     lineIndex == lineAtEnd ? endIndex : lineStartIndexesArray[lineIndex + 1]);
 
-            int selectionWidth = (int) stringSplitter.stringWidth(selectedText);
+            int selectionWidth = (int) stringSplitter.getWidth(selectedText);
 
             String unselectedText = fullText.substring(lineStartIndex, Math.max(startIndex, lineStartIndex));
-            int selectionX = startIndex > lineStartIndex ? (int)stringSplitter.stringWidth(unselectedText) : 0;
+            int selectionX = startIndex > lineStartIndex ? (int)stringSplitter.getWidth(unselectedText) : 0;
 
-            areas.add(new Rect2i(line.x + selectionX, line.y, selectionWidth, font.lineHeight));
+            areas.add(new Rect2i(line.x + selectionX, line.y, selectionWidth, font.fontHeight));
         }
 
         return areas;
@@ -181,7 +181,7 @@ public class DisplayCache {
 
         public final Style style;
         public final String contents;
-        public final Component asComponent;
+        public final Text asComponent;
         public final int x;
         public final int y;
         public final int width;
@@ -194,7 +194,7 @@ public class DisplayCache {
             this.y = y;
             this.width = width;
             this.height = height;
-            this.asComponent = Component.literal(contents).setStyle(style);
+            this.asComponent = Text.literal(contents).setStyle(style);
         }
     }
 }

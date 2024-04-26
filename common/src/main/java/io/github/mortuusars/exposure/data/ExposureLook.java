@@ -2,11 +2,11 @@ package io.github.mortuusars.exposure.data;
 
 import io.github.mortuusars.exposure.render.modifiers.ExposurePixelModifiers;
 import io.github.mortuusars.exposure.render.modifiers.IPixelModifier;
-import net.minecraft.util.StringRepresentable;
+import net.minecraft.util.StringIdentifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public enum ExposureLook implements StringRepresentable {
+public enum ExposureLook implements StringIdentifiable {
     REGULAR("regular", ExposurePixelModifiers.EMPTY),
     AGED("aged", ExposurePixelModifiers.AGED),
     NEGATIVE("negative", ExposurePixelModifiers.NEGATIVE),
@@ -22,7 +22,7 @@ public enum ExposureLook implements StringRepresentable {
 
     public static @Nullable ExposureLook byName(String name) {
         for (ExposureLook value : values()) {
-            if (value.getSerializedName().equals(name))
+            if (value.asString().equals(name))
                 return value;
         }
 
@@ -30,7 +30,7 @@ public enum ExposureLook implements StringRepresentable {
     }
 
     @Override
-    public @NotNull String getSerializedName() {
+    public @NotNull String asString() {
         return name;
     }
 
@@ -39,6 +39,6 @@ public enum ExposureLook implements StringRepresentable {
     }
 
     public String getIdSuffix() {
-        return this != REGULAR ? "_" + getSerializedName() : "";
+        return this != REGULAR ? "_" + asString() : "";
     }
 }

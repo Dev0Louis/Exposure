@@ -18,9 +18,9 @@ import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.server.packs.PackType;
+import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import net.minecraft.client.util.ModelIdentifier;
+import net.minecraft.resource.ResourceType;
 
 public class ExposureFabricClient implements ClientModInitializer {
     @Override
@@ -29,16 +29,16 @@ public class ExposureFabricClient implements ClientModInitializer {
 
         ExposureClient.registerKeymappings(KeyBindingHelper::registerKeyBinding);
 
-        MenuScreens.register(Exposure.MenuTypes.CAMERA.get(), CameraAttachmentsScreen::new);
-        MenuScreens.register(Exposure.MenuTypes.ALBUM.get(), AlbumScreen::new);
-        MenuScreens.register(Exposure.MenuTypes.LECTERN_ALBUM.get(), LecternAlbumScreen::new);
-        MenuScreens.register(Exposure.MenuTypes.LIGHTROOM.get(), LightroomScreen::new);
+        HandledScreens.register(Exposure.MenuTypes.CAMERA.get(), CameraAttachmentsScreen::new);
+        HandledScreens.register(Exposure.MenuTypes.ALBUM.get(), AlbumScreen::new);
+        HandledScreens.register(Exposure.MenuTypes.LECTERN_ALBUM.get(), LecternAlbumScreen::new);
+        HandledScreens.register(Exposure.MenuTypes.LIGHTROOM.get(), LightroomScreen::new);
 
         ModelLoadingPlugin.register(pluginContext ->
-                pluginContext.addModels(new ModelResourceLocation("exposure", "camera_gui", "inventory")));
+                pluginContext.addModels(new ModelIdentifier("exposure", "camera_gui", "inventory")));
 
-        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new ExposureFabricClientReloadListener());
-        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new FabricFiltersResourceLoader());
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new ExposureFabricClientReloadListener());
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new FabricFiltersResourceLoader());
 
         EntityRendererRegistry.register(Exposure.EntityTypes.PHOTOGRAPH.get(), PhotographEntityRenderer::new);
         TooltipComponentCallback.EVENT.register(data -> data instanceof PhotographTooltip photographTooltip ? photographTooltip : null);

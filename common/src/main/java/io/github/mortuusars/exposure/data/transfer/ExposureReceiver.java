@@ -2,10 +2,9 @@ package io.github.mortuusars.exposure.data.transfer;
 
 import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
 import io.github.mortuusars.exposure.data.storage.IExposureStorage;
-import net.minecraft.nbt.CompoundTag;
-
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.nbt.NbtCompound;
 
 public class ExposureReceiver implements IExposureReceiver {
     private final Map<String, byte[]> PARTS = new HashMap<>();
@@ -15,7 +14,7 @@ public class ExposureReceiver implements IExposureReceiver {
         this.storage = storage;
     }
 
-    public void receivePart(String id, int width, int height, CompoundTag properties, int offset, byte[] partBytes) {
+    public void receivePart(String id, int width, int height, NbtCompound properties, int offset, byte[] partBytes) {
         byte[] exposureBytes = PARTS.compute(id, (key, data) ->
                 data == null ? new byte[width * height] : data);
 

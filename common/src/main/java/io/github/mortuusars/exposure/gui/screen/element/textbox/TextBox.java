@@ -1,34 +1,34 @@
 package io.github.mortuusars.exposure.gui.screen.element.textbox;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.mortuusars.exposure.util.Pos2i;
-import net.minecraft.Util;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.StringSplitter;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.font.TextFieldHelper;
-import net.minecraft.client.gui.narration.NarratedElementType;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextHandler;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
+import net.minecraft.client.gui.screen.narration.NarrationPart;
+import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.SelectionManager;
+import net.minecraft.client.util.math.Rect2i;
+import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.Text;
+import net.minecraft.util.Util;
 
-public class TextBox extends AbstractWidget {
-    public final Font font;
+public class TextBox extends ClickableWidget {
+    public final TextRenderer font;
     public Supplier<String> textGetter;
     public Consumer<String> textSetter;
     public Predicate<String> textValidator = text -> text != null
-            && getFont().wordWrapHeight(text, width) + (text.endsWith("\n") ? getFont().lineHeight : 0) <= height;
+            && getFont().getWrappedLinesHeight(text, width) + (text.endsWith("\n") ? getFont().fontHeight : 0) <= height;
 
     public HorizontalAlignment horizontalAlignment = HorizontalAlignment.LEFT;
     public int fontColor = 0xFF000000;
@@ -36,21 +36,21 @@ public class TextBox extends AbstractWidget {
     public int selectionColor = 0xFF0000FF;
     public int selectionUnfocusedColor = 0x880000FF;
 
-    public final TextFieldHelper textFieldHelper;
+    public final SelectionManager textFieldHelper;
     protected DisplayCache displayCache = new DisplayCache();
     protected int frameTick;
     protected long lastClickTime;
     protected int lastIndex = -1;
 
-    public TextBox(@NotNull Font font, int x, int y, int width, int height,
+    public TextBox(@NotNull TextRenderer font, int x, int y, int width, int height,
                    Supplier<String> textGetter, Consumer<String> textSetter) {
-        super(x, y, width, height, Component.empty());
+        super(x, y, width, height, Text.empty());
         this.font = font;
         this.textGetter = textGetter;
         this.textSetter = textSetter;
-        textFieldHelper = new TextFieldHelper(this::getText, this::setText,
-                TextFieldHelper.createClipboardGetter(Minecraft.getInstance()),
-                TextFieldHelper.createClipboardSetter(Minecraft.getInstance()),
+        textFieldHelper = new SelectionManager(this::getText, this::setText,
+                SelectionManager.makeClipboardGetter(MinecraftClient.getInstance()),
+                SelectionManager.makeClipboardSetter(MinecraftClient.getInstance()),
                 this::validateText);
     }
 
@@ -58,7 +58,7 @@ public class TextBox extends AbstractWidget {
         ++frameTick;
     }
 
-    public Font getFont() {
+    public TextRenderer getFont() {
         return font;
     }
 
@@ -100,7 +100,7 @@ public class TextBox extends AbstractWidget {
     }
 
     public void setCursorToEnd() {
-        textFieldHelper.setCursorToEnd();
+        textFieldHelper.putCursorAtEnd();
         clearDisplayCache();
     }
 
@@ -110,7 +110,7 @@ public class TextBox extends AbstractWidget {
 
     protected DisplayCache getDisplayCache() {
         if (displayCache.needsRebuilding)
-            displayCache.rebuild(font, getText(), textFieldHelper.getCursorPos(), textFieldHelper.getSelectionPos(),
+            displayCache.rebuild(font, getText(), textFieldHelper.getSelectionStart(), textFieldHelper.getSelectionEnd(),
                     getX(), getY(), getWidth(), getHeight(), horizontalAlignment);
         return displayCache;
     }
@@ -128,49 +128,49 @@ public class TextBox extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    protected void renderButton(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         DisplayCache displayCache = this.getDisplayCache();
         for (DisplayCache.LineInfo lineInfo : displayCache.lines) {
-            guiGraphics.drawString(this.font, lineInfo.asComponent, getX() + lineInfo.x, getY() + lineInfo.y, getCurrentFontColor(), false);
+            guiGraphics.drawText(this.font, lineInfo.asComponent, getX() + lineInfo.x, getY() + lineInfo.y, getCurrentFontColor(), false);
         }
         this.renderHighlight(guiGraphics, displayCache.selectionAreas);
         if (isFocused())
             this.renderCursor(guiGraphics, displayCache.cursorPos, displayCache.cursorAtEnd);
     }
 
-    protected void renderHighlight(GuiGraphics guiGraphics, Rect2i[] highlightAreas) {
+    protected void renderHighlight(DrawContext guiGraphics, Rect2i[] highlightAreas) {
         for (Rect2i selection : highlightAreas) {
             int x = getX() + selection.getX();
             int y = getY() + selection.getY();
             int x1 = x + selection.getWidth();
             int y1 = y + selection.getHeight();
-            guiGraphics.fill(RenderType.guiTextHighlight(), x, y - 1, x1, y1, isFocused() ? selectionColor : selectionUnfocusedColor);
+            guiGraphics.fill(RenderLayer.getGuiTextHighlight(), x, y - 1, x1, y1, isFocused() ? selectionColor : selectionUnfocusedColor);
         }
     }
 
-    protected void renderCursor(GuiGraphics guiGraphics, Pos2i cursorPos, boolean isEndOfText) {
+    protected void renderCursor(DrawContext guiGraphics, Pos2i cursorPos, boolean isEndOfText) {
         if (this.frameTick / 6 % 2 == 0) {
             cursorPos = convertLocalToScreen(cursorPos);
             if (isEndOfText)
-                guiGraphics.drawString(this.font, "_", cursorPos.x, cursorPos.y, getCurrentFontColor(), false);
+                guiGraphics.drawText(this.font, "_", cursorPos.x, cursorPos.y, getCurrentFontColor(), false);
             else {
-                guiGraphics.pose().pushPose();
-                guiGraphics.pose().translate(0, 0, 50);
+                guiGraphics.getMatrices().push();
+                guiGraphics.getMatrices().translate(0, 0, 50);
                 RenderSystem.disableBlend();
-                guiGraphics.fill(cursorPos.x, cursorPos.y - 1, cursorPos.x + 1, cursorPos.y + this.font.lineHeight, getCurrentFontColor());
-                guiGraphics.pose().popPose();
+                guiGraphics.fill(cursorPos.x, cursorPos.y - 1, cursorPos.x + 1, cursorPos.y + this.font.fontHeight, getCurrentFontColor());
+                guiGraphics.getMatrices().pop();
             }
         }
     }
 
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
-        narrationElementOutput.add(NarratedElementType.TITLE, createNarrationMessage());
+    protected void appendClickableNarrations(NarrationMessageBuilder narrationElementOutput) {
+        narrationElementOutput.put(NarrationPart.TITLE, getNarrationMessage());
     }
 
     @Override
-    public @NotNull Component getMessage() {
-        return Component.literal(getText());
+    public @NotNull Text getMessage() {
+        return Text.literal(getText());
     }
 
     @Override
@@ -184,38 +184,38 @@ public class TextBox extends AbstractWidget {
     }
 
     protected boolean handleKeyPressed(int keyCode, int scanCode, int modifiers) {
-        TextFieldHelper.CursorStep cursorStep = Screen.hasControlDown() ? TextFieldHelper.CursorStep.WORD : TextFieldHelper.CursorStep.CHARACTER;
-        if (keyCode == InputConstants.KEY_UP) {
+        SelectionManager.SelectionType cursorStep = Screen.hasControlDown() ? SelectionManager.SelectionType.WORD : SelectionManager.SelectionType.CHARACTER;
+        if (keyCode == InputUtil.GLFW_KEY_UP) {
             changeLine(-1);
             return true;
-        } else if (keyCode == InputConstants.KEY_DOWN) {
+        } else if (keyCode == InputUtil.GLFW_KEY_DOWN) {
             changeLine(1);
             return true;
-        } else if (keyCode == InputConstants.KEY_HOME) {
+        } else if (keyCode == InputUtil.GLFW_KEY_HOME) {
             keyHome();
             return true;
-        } else if (keyCode == InputConstants.KEY_END) {
+        } else if (keyCode == InputUtil.GLFW_KEY_END) {
             keyEnd();
             return true;
-        } else if (keyCode == InputConstants.KEY_BACKSPACE) {
-            textFieldHelper.removeFromCursor(-1, cursorStep);
+        } else if (keyCode == InputUtil.GLFW_KEY_BACKSPACE) {
+            textFieldHelper.delete(-1, cursorStep);
             return true;
-        } else if (keyCode == InputConstants.KEY_DELETE) {
-            textFieldHelper.removeFromCursor(1, cursorStep);
+        } else if (keyCode == InputUtil.GLFW_KEY_DELETE) {
+            textFieldHelper.delete(1, cursorStep);
             return true;
-        } else if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
-            textFieldHelper.insertText(CommonComponents.NEW_LINE.getString());
+        } else if (keyCode == InputUtil.GLFW_KEY_ENTER || keyCode == InputUtil.GLFW_KEY_KP_ENTER) {
+            textFieldHelper.insert(ScreenTexts.LINE_BREAK.getString());
             return true;
         }
 
-        return textFieldHelper.keyPressed(keyCode);
+        return textFieldHelper.handleSpecialKey(keyCode);
     }
 
     public boolean charTyped(char codePoint, int modifiers) {
         if (!isFocused())
             return false;
 
-        boolean typed = textFieldHelper.charTyped(codePoint);
+        boolean typed = textFieldHelper.insert(codePoint);
         if (typed)
             clearDisplayCache();
         return typed;
@@ -223,8 +223,8 @@ public class TextBox extends AbstractWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (isHovered && visible && isActive() && button == 0) {
-            long currentTime = Util.getMillis();
+        if (hovered && visible && isNarratable() && button == 0) {
+            long currentTime = Util.getMeasuringTimeMs();
             DisplayCache displayCache = getDisplayCache();
             int index = displayCache.getIndexAtPosition(font, convertScreenToLocal(new Pos2i((int) mouseX, (int) mouseY)));
 
@@ -236,7 +236,7 @@ public class TextBox extends AbstractWidget {
                         textFieldHelper.selectAll();
                     }
                 } else {
-                    textFieldHelper.setCursorPos(index, Screen.hasShiftDown());
+                    textFieldHelper.moveCursorTo(index, Screen.hasShiftDown());
                 }
                 clearDisplayCache();
             }
@@ -254,7 +254,7 @@ public class TextBox extends AbstractWidget {
         if (button == 0) {
             DisplayCache displayCache = this.getDisplayCache();
             int index = displayCache.getIndexAtPosition(this.font, this.convertScreenToLocal(new Pos2i((int) mouseX, (int) mouseY)));
-            this.textFieldHelper.setCursorPos(index, true);
+            this.textFieldHelper.moveCursorTo(index, true);
             this.clearDisplayCache();
         }
         return true;
@@ -262,34 +262,34 @@ public class TextBox extends AbstractWidget {
 
     protected void selectWord(int index) {
         String string = this.getText();
-        this.textFieldHelper.setSelectionRange(StringSplitter.getWordPosition(string, -1, index, false),
-                StringSplitter.getWordPosition(string, 1, index, false));
+        this.textFieldHelper.setSelection(TextHandler.moveCursorByWords(string, -1, index, false),
+                TextHandler.moveCursorByWords(string, 1, index, false));
     }
 
     protected void changeLine(int yChange) {
-        int cursorPos = this.textFieldHelper.getCursorPos();
+        int cursorPos = this.textFieldHelper.getSelectionStart();
         int line = this.getDisplayCache().changeLine(cursorPos, yChange);
-        this.textFieldHelper.setCursorPos(line, Screen.hasShiftDown());
+        this.textFieldHelper.moveCursorTo(line, Screen.hasShiftDown());
     }
 
     protected void keyHome() {
         if (Screen.hasControlDown()) {
-            this.textFieldHelper.setCursorToStart(Screen.hasShiftDown());
+            this.textFieldHelper.moveCursorToStart(Screen.hasShiftDown());
         } else {
-            int cursorIndex = this.textFieldHelper.getCursorPos();
+            int cursorIndex = this.textFieldHelper.getSelectionStart();
             int lineStartIndex = this.getDisplayCache().findLineStart(cursorIndex);
-            this.textFieldHelper.setCursorPos(lineStartIndex, Screen.hasShiftDown());
+            this.textFieldHelper.moveCursorTo(lineStartIndex, Screen.hasShiftDown());
         }
     }
 
     protected void keyEnd() {
         if (Screen.hasControlDown()) {
-            this.textFieldHelper.setCursorToEnd(Screen.hasShiftDown());
+            this.textFieldHelper.moveCursorToEnd(Screen.hasShiftDown());
         } else {
             DisplayCache displayCache = this.getDisplayCache();
-            int cursorIndex = this.textFieldHelper.getCursorPos();
+            int cursorIndex = this.textFieldHelper.getSelectionStart();
             int lineEndIndex = displayCache.findLineEnd(cursorIndex);
-            this.textFieldHelper.setCursorPos(lineEndIndex, Screen.hasShiftDown());
+            this.textFieldHelper.moveCursorTo(lineEndIndex, Screen.hasShiftDown());
         }
     }
 }

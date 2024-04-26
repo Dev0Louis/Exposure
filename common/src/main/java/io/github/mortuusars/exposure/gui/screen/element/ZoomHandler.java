@@ -1,7 +1,7 @@
 package io.github.mortuusars.exposure.gui.screen.element;
 
 import io.github.mortuusars.exposure.camera.infrastructure.ZoomDirection;
-import net.minecraft.util.Mth;
+import net.minecraft.util.math.MathHelper;
 
 public class ZoomHandler {
     public float step = 1.35f;
@@ -20,7 +20,7 @@ public class ZoomHandler {
 
     public void update(float partialTicks) {
         float delta = Math.min((currentZoom < targetZoom ? zoomInSpeed : zoomOutSpeed) * partialTicks, 1f);
-        currentZoom = Mth.lerp(delta, currentZoom, targetZoom);
+        currentZoom = MathHelper.lerp(delta, currentZoom, targetZoom);
     }
 
     public void change(ZoomDirection direction) {
@@ -28,6 +28,6 @@ public class ZoomHandler {
     }
 
     public void set(float target) {
-        targetZoom = Mth.clamp(target, minZoom, maxZoom);
+        targetZoom = MathHelper.clamp(target, minZoom, maxZoom);
     }
 }

@@ -6,17 +6,17 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
 import io.github.mortuusars.exposure.Exposure;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
-import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraft.world.item.crafting.Ingredient;
-
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.resource.JsonDataLoader;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.profiler.Profiler;
 
-public class FiltersResourceLoader extends SimpleJsonResourceReloadListener {
+public class FiltersResourceLoader extends JsonDataLoader {
     public static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     public static final String DIRECTORY = "filters";
 
@@ -25,8 +25,8 @@ public class FiltersResourceLoader extends SimpleJsonResourceReloadListener {
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> content, ResourceManager resourceManager, ProfilerFiller profiler) {
-        ConcurrentMap<Ingredient, ResourceLocation> filters = new ConcurrentHashMap<>();
+    protected void apply(Map<Identifier, JsonElement> content, ResourceManager resourceManager, Profiler profiler) {
+        ConcurrentMap<Ingredient, Identifier> filters = new ConcurrentHashMap<>();
 
         LogUtils.getLogger().info("Loading exposure filters:");
 
@@ -47,7 +47,7 @@ public class FiltersResourceLoader extends SimpleJsonResourceReloadListener {
 
                 String shader = jsonObject.get("shader").getAsString();
 
-                filters.put(ingredient, new ResourceLocation(shader));
+                filters.put(ingredient, new Identifier(shader));
 
                 LogUtils.getLogger().info("Filter [" + entry.getKey() + ", " + shader + "] added.");
             }

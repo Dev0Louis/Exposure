@@ -17,8 +17,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.item.ItemGroups;
+import net.minecraft.resource.ResourceType;
 import net.minecraftforge.fml.config.ModConfig;
 
 public class ExposureFabric implements ModInitializer {
@@ -41,7 +41,7 @@ public class ExposureFabric implements ModInitializer {
             TestCommand.register(dispatcher);
         });
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(content -> {
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(content -> {
             content.prepend(Exposure.Items.CAMERA.get());
             content.prepend(Exposure.Items.BLACK_AND_WHITE_FILM.get());
             content.prepend(Exposure.Items.COLOR_FILM.get());
@@ -53,14 +53,14 @@ public class ExposureFabric implements ModInitializer {
             content.prepend(Exposure.Items.ALBUM.get());
         });
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(content -> {
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(content -> {
             content.prepend(Exposure.Items.LIGHTROOM.get());
         });
 
         Exposure.Advancements.register();
         Exposure.Stats.register();
 
-        ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new FabricLensesDataLoader());
+        ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new FabricLensesDataLoader());
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             Exposure.initServer(server);
@@ -70,7 +70,7 @@ public class ExposureFabric implements ModInitializer {
 
         ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register((player, joined) -> {
             if (player.getServer() != null)
-                Lenses.onDatapackSync(player.getServer().getPlayerList(), null);
+                Lenses.onDatapackSync(player.getServer().getPlayerManager(), null);
         });
 
         PacketsImpl.registerC2SPackets();

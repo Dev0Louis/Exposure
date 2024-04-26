@@ -1,8 +1,8 @@
 package io.github.mortuusars.exposure.camera.infrastructure;
 
 import com.mojang.datafixers.util.Either;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 public class FrameData {
@@ -40,14 +40,14 @@ public class FrameData {
      * If both are defined - 'Id' takes priority.
      * @return 'Either.left("")' if not found.
      */
-    public static Either<String, ResourceLocation> getIdOrTexture(@NotNull CompoundTag tag) {
+    public static Either<String, Identifier> getIdOrTexture(@NotNull NbtCompound tag) {
         String id = tag.getString(ID);
         if (!id.isEmpty())
             return Either.left(id);
 
         String texture = tag.getString(TEXTURE);
         if (!texture.isEmpty())
-            return Either.right(new ResourceLocation(texture));
+            return Either.right(new Identifier(texture));
 
         return Either.left("");
     }

@@ -1,35 +1,35 @@
 package io.github.mortuusars.exposure.gui.screen.camera.button;
 
 import io.github.mortuusars.exposure.gui.screen.element.IElementWithTooltip;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.ImageButton;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.TexturedButtonWidget;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class CycleButton extends ImageButton implements IElementWithTooltip {
+public abstract class CycleButton extends TexturedButtonWidget implements IElementWithTooltip {
     protected final Screen screen;
     protected int count = 1;
     protected int currentIndex = 0;
     protected boolean loop = true;
 
-    public CycleButton(Screen screen, int x, int y, int width, int height, int u, int v, int yDiffTex, ResourceLocation texture) {
+    public CycleButton(Screen screen, int x, int y, int width, int height, int u, int v, int yDiffTex, Identifier texture) {
         super(x, y, width, height, u, v, yDiffTex, texture, button -> {});
         this.screen = screen;
     }
 
     @Override
-    public void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+    public void renderButton(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     @Override
-    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float pPartialTick) {
+    public void render(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float pPartialTick) {
         super.render(guiGraphics, mouseX, mouseY, pPartialTick);
     }
 
-    public void renderToolTip(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) { }
+    public void renderToolTip(@NotNull DrawContext guiGraphics, int mouseX, int mouseY) { }
 
     public void setupButtonElements(int count, int startingIndex) {
         this.count = count;
@@ -40,7 +40,7 @@ public abstract class CycleButton extends ImageButton implements IElementWithToo
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if ((button == 0 || button == 1) && clicked(mouseX, mouseY)) {
             cycle(button == 1);
-            this.playDownSound(Minecraft.getInstance().getSoundManager());
+            this.playDownSound(MinecraftClient.getInstance().getSoundManager());
             return true;
         }
         return false;
@@ -49,7 +49,7 @@ public abstract class CycleButton extends ImageButton implements IElementWithToo
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         cycle(delta < 0d);
-        this.playDownSound(Minecraft.getInstance().getSoundManager());
+        this.playDownSound(MinecraftClient.getInstance().getSoundManager());
         return true;
     }
 

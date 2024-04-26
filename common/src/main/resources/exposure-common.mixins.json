@@ -12,8 +12,8 @@
     "KeyboardHandlerMixin",
     "KeyMappingMixin",
     "LocalPlayerTickMixin",
-    "MinecraftMixin",
-    "MultiPlayerGameModeMixin",
+    "MinecraftClientMixin",
+    "ClientPlayerInteractionManagerMixin",
     "SelfieCameraMixin",
     "ViewfinderSensitivityMixin"
   ],

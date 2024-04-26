@@ -1,11 +1,10 @@
 package io.github.mortuusars.exposure.camera.capture.component;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import io.github.mortuusars.exposure.camera.capture.Capture;
-import net.minecraft.nbt.CompoundTag;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.nbt.NbtCompound;
 
 /**
  * Client-side extension of the capture system. Allows modifying the steps of the capture process.
@@ -74,7 +73,7 @@ public interface ICaptureComponent {
      */
     default void teardown(Capture capture) { }
 
-    default boolean save(byte[] MapColorPixels, int width, int height, CompoundTag properties) {
+    default boolean save(byte[] MapColorPixels, int width, int height, NbtCompound properties) {
         return true;
     }
 

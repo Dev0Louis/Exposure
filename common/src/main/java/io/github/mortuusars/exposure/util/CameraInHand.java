@@ -4,13 +4,13 @@ import com.google.common.base.Preconditions;
 import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.server.DeactivateCamerasInHandC2SP;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Hand;
 
 public class CameraInHand {
     public static final CameraInHand EMPTY = new CameraInHand(null, null);
@@ -18,16 +18,16 @@ public class CameraInHand {
     @Nullable
     private ItemAndStack<CameraItem> camera;
     @Nullable
-    private InteractionHand hand;
+    private Hand hand;
 
-    public CameraInHand(@Nullable ItemAndStack<CameraItem> camera, @Nullable InteractionHand hand) {
+    public CameraInHand(@Nullable ItemAndStack<CameraItem> camera, @Nullable Hand hand) {
         this.camera = camera;
         this.hand = hand;
     }
 
-    public CameraInHand(@NotNull Player player) {
-        for (InteractionHand hand : InteractionHand.values()) {
-            ItemStack itemInHand = player.getItemInHand(hand);
+    public CameraInHand(@NotNull PlayerEntity player) {
+        for (Hand hand : Hand.values()) {
+            ItemStack itemInHand = player.getStackInHand(hand);
             if (itemInHand.getItem() instanceof CameraItem) {
                 this.camera = new ItemAndStack<>(itemInHand);
                 this.hand = hand;
@@ -36,23 +36,23 @@ public class CameraInHand {
         }
     }
 
-    public static void deactivate(Player player) {
+    public static void deactivate(PlayerEntity player) {
         Preconditions.checkArgument(player != null, "Player cannot be null");
-        for (InteractionHand hand : InteractionHand.values()) {
-            ItemStack itemInHand = player.getItemInHand(hand);
+        for (Hand hand : Hand.values()) {
+            ItemStack itemInHand = player.getStackInHand(hand);
             if (itemInHand.getItem() instanceof CameraItem cameraItem)
                 cameraItem.deactivate(player, itemInHand);
         }
 
-        if (player.level().isClientSide)
+        if (player.getWorld().isClient)
             Packets.sendToServer(new DeactivateCamerasInHandC2SP());
     }
 
-    public static @Nullable InteractionHand getActiveHand(Player player) {
+    public static @Nullable Hand getActiveHand(PlayerEntity player) {
         Preconditions.checkArgument(player != null, "Player should not be null.");
 
-        for (InteractionHand hand : InteractionHand.values()) {
-            ItemStack itemInHand = player.getItemInHand(hand);
+        for (Hand hand : Hand.values()) {
+            ItemStack itemInHand = player.getStackInHand(hand);
             if (itemInHand.getItem() instanceof CameraItem cameraItem && cameraItem.isActive(itemInHand))
                 return hand;
         }
@@ -60,16 +60,16 @@ public class CameraInHand {
         return null;
     }
 
-    public static boolean isActive(Player player) {
+    public static boolean isActive(PlayerEntity player) {
         return getActiveHand(player) != null;
     }
 
-    public static CameraInHand getActive(Player player) {
-        @Nullable InteractionHand activeHand = getActiveHand(player);
+    public static CameraInHand getActive(PlayerEntity player) {
+        @Nullable Hand activeHand = getActiveHand(player);
         if (activeHand == null)
             return EMPTY;
 
-        return new CameraInHand(new ItemAndStack<>(player.getItemInHand(activeHand)), activeHand);
+        return new CameraInHand(new ItemAndStack<>(player.getStackInHand(activeHand)), activeHand);
     }
 
     public boolean isEmpty() {
@@ -93,7 +93,7 @@ public class CameraInHand {
         return camera.getStack();
     }
 
-    public InteractionHand getHand() {
+    public Hand getHand() {
         Preconditions.checkState(!isEmpty(), "getHand should not be called before checking isEmpty first.");
         return hand;
     }

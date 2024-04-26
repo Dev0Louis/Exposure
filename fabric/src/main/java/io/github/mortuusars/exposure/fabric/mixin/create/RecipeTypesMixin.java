@@ -2,7 +2,7 @@ package io.github.mortuusars.exposure.fabric.mixin.create;
 
 import com.simibubi.create.AllRecipeTypes;
 import io.github.mortuusars.exposure.Exposure;
-import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.recipe.Recipe;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;

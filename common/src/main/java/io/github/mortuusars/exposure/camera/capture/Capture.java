@@ -1,7 +1,6 @@
 package io.github.mortuusars.exposure.camera.capture;
 
 import com.google.common.base.Preconditions;
-import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.logging.LogUtils;
 import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.camera.capture.component.ICaptureComponent;
@@ -10,22 +9,22 @@ import io.github.mortuusars.exposure.camera.capture.converter.SimpleColorConvert
 import io.github.mortuusars.exposure.camera.infrastructure.FilmType;
 import io.github.mortuusars.exposure.data.storage.ExposureSavedData;
 import io.github.mortuusars.exposure.util.ColorUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.Screenshot;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.Mth;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.math.MathHelper;
 
 @SuppressWarnings("unused")
 public class Capture {
     private final String exposureId;
-    private final CompoundTag frameData;
+    private final NbtCompound frameData;
     private FilmType type = FilmType.COLOR;
     private int size = Exposure.DEFAULT_FILM_SIZE;
     private float cropFactor = Exposure.CROP_FACTOR;
@@ -40,7 +39,7 @@ public class Capture {
     private boolean completed = false;
     private long currentTick;
 
-    public Capture(String exposureId, CompoundTag frameData) {
+    public Capture(String exposureId, NbtCompound frameData) {
         this.exposureId = exposureId;
         this.frameData = frameData;
     }
@@ -50,7 +49,7 @@ public class Capture {
     }
 
     public int getTicksDelay() {
-        return (int)(captureTick - Objects.requireNonNull(Minecraft.getInstance().level).getGameTime());
+        return (int)(captureTick - Objects.requireNonNull(MinecraftClient.getInstance().world).getTime());
     }
 
     public int getFramesDelay() {
@@ -125,7 +124,7 @@ public class Capture {
             modifier.initialize(this);
         }
 
-        currentTick = Objects.requireNonNull(Minecraft.getInstance().level).getGameTime();
+        currentTick = Objects.requireNonNull(MinecraftClient.getInstance().world).getTime();
         captureTick = currentTick + ticksDelay;
 
         if (currentTick == captureTick && framesDelay <= 0) {
@@ -138,7 +137,7 @@ public class Capture {
 
     public void tick() {
         long lastTick = currentTick;
-        currentTick = Objects.requireNonNull(Minecraft.getInstance().level).getGameTime();
+        currentTick = Objects.requireNonNull(MinecraftClient.getInstance().world).getTime();
 
         if (ticksDelay > 0) {
             if (lastTick < currentTick) {
@@ -168,7 +167,7 @@ public class Capture {
             return;
         }
 
-        NativeImage screenshot = Screenshot.takeScreenshot(Minecraft.getInstance().getMainRenderTarget());
+        NativeImage screenshot = ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getFramebuffer());
 
         for (ICaptureComponent modifier : components) {
             modifier.screenshotTaken(this, screenshot);
@@ -196,8 +195,8 @@ public class Capture {
                 component.teardown(this);
             }
 
-            CompoundTag properties = new CompoundTag();
-            properties.putString(ExposureSavedData.TYPE_PROPERTY, getFilmType().getSerializedName());
+            NbtCompound properties = new NbtCompound();
+            properties.putString(ExposureSavedData.TYPE_PROPERTY, getFilmType().asString());
 
             for (ICaptureComponent component : components) {
                 component.save(pixels, image.getWidth(), image.getHeight(), properties);
@@ -240,13 +239,13 @@ public class Capture {
         try (sourceImage) {
             for (int x = 0; x < size; x++) {
                 float sourceX = sourceSize * (x / (float) size);
-                int sx = Mth.clamp((int) sourceX + sourceXStart, sourceXStart, sourceXStart + sourceSize);
+                int sx = MathHelper.clamp((int) sourceX + sourceXStart, sourceXStart, sourceXStart + sourceSize);
 
                 for (int y = 0; y < size; y++) {
                     float sourceY = sourceSize * (y / (float) size);
-                    int sy = Mth.clamp((int) sourceY + sourceYStart, sourceYStart, sourceYStart + sourceSize);
+                    int sy = MathHelper.clamp((int) sourceY + sourceYStart, sourceYStart, sourceYStart + sourceSize);
 
-                    int rgba = ColorUtils.BGRtoRGB(sourceImage.getPixelRGBA(sx, sy)); // Mojang decided to return BGR in getPixelRGBA method.
+                    int rgba = ColorUtils.BGRtoRGB(sourceImage.getColor(sx, sy)); // Mojang decided to return BGR in getPixelRGBA method.
                     Color pixel = new Color(rgba, false);
 
                     for (ICaptureComponent component : components) {

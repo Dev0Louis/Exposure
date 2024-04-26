@@ -1,13 +1,13 @@
 package io.github.mortuusars.exposure.menu;
 
 import com.google.common.base.Preconditions;
-import net.minecraft.world.Container;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.screen.slot.Slot;
 
 public class FilteredSlot extends Slot {
     private final Consumer<SlotChangedArgs> onItemChanged;
@@ -15,7 +15,7 @@ public class FilteredSlot extends Slot {
     private final int slot;
     private final Predicate<ItemStack> mayPlacePredicate;
 
-    public FilteredSlot(Container container, int slot, int x, int y, int maxStackSize, Consumer<SlotChangedArgs> onItemChanged,
+    public FilteredSlot(Inventory container, int slot, int x, int y, int maxStackSize, Consumer<SlotChangedArgs> onItemChanged,
                         Predicate<ItemStack> mayPlacePredicate) {
         super(container, slot, x, y);
         Preconditions.checkArgument(maxStackSize > 0 && maxStackSize <= 64, maxStackSize + " is not valid. (1-64)");
@@ -30,27 +30,27 @@ public class FilteredSlot extends Slot {
     }
 
     @Override
-    public int getMaxStackSize() {
-        return Math.min(container.getMaxStackSize(), maxStackSize);
+    public int getMaxItemCount() {
+        return Math.min(inventory.getMaxCountPerStack(), maxStackSize);
     }
 
     @Override
-    public boolean mayPlace(ItemStack stack) {
+    public boolean canInsert(ItemStack stack) {
         return mayPlacePredicate.test(stack);
     }
 
     @Override
-    public void set(ItemStack stack) {
-        ItemStack oldStack = getItem().copy();
-        super.set(stack);
-        onItemChanged.accept(new SlotChangedArgs(this, oldStack, getItem()));
+    public void setStackNoCallbacks(ItemStack stack) {
+        ItemStack oldStack = getStack().copy();
+        super.setStackNoCallbacks(stack);
+        onItemChanged.accept(new SlotChangedArgs(this, oldStack, getStack()));
     }
 
     @Override
-    public @NotNull ItemStack remove(int amount) {
-        ItemStack oldStack = getItem().copy();
-        ItemStack removed = super.remove(amount);
-        ItemStack newStack = getItem();
+    public @NotNull ItemStack takeStack(int amount) {
+        ItemStack oldStack = getStack().copy();
+        ItemStack removed = super.takeStack(amount);
+        ItemStack newStack = getStack();
         onItemChanged.accept(new SlotChangedArgs(this, oldStack, newStack));
         return removed;
     }

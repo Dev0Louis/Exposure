@@ -6,30 +6,30 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.camera.infrastructure.ShutterSpeed;
 import io.github.mortuusars.exposure.camera.infrastructure.SynchronizedCameraInHandActions;
 import io.github.mortuusars.exposure.util.CameraInHand;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.client.sounds.SoundManager;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.client.sound.SoundManager;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 public class ShutterSpeedButton extends CycleButton {
     private final List<ShutterSpeed> shutterSpeeds;
     private final int secondaryFontColor;
     private final int mainFontColor;
 
-    public ShutterSpeedButton(Screen screen, int x, int y, int width, int height, int u, int v, ResourceLocation texture) {
+    public ShutterSpeedButton(Screen screen, int x, int y, int width, int height, int u, int v, Identifier texture) {
         super(screen, x, y, width, height, u, v, height, texture);
 
-        CameraInHand camera = CameraInHand.getActive(Minecraft.getInstance().player);
+        CameraInHand camera = CameraInHand.getActive(MinecraftClient.getInstance().player);
         Preconditions.checkState(!camera.isEmpty(), "Player must hold an active camera at this point.");
 
         List<ShutterSpeed> speeds = new ArrayList<>(camera.getItem().getAllShutterSpeeds(camera.getStack()));
@@ -54,13 +54,13 @@ public class ShutterSpeedButton extends CycleButton {
 
     @Override
     public void playDownSound(SoundManager handler) {
-        handler.play(SimpleSoundInstance.forUI(Exposure.SoundEvents.CAMERA_DIAL_CLICK.get(),
-                Objects.requireNonNull(Minecraft.getInstance().level).random.nextFloat() * 0.05f + 0.9f + currentIndex * 0.01f, 0.7f));
+        handler.play(PositionedSoundInstance.master(Exposure.SoundEvents.CAMERA_DIAL_CLICK.get(),
+                Objects.requireNonNull(MinecraftClient.getInstance().world).random.nextFloat() * 0.05f + 0.9f + currentIndex * 0.01f, 0.7f));
     }
 
     @Override
-    public void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+    public void renderButton(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
 
         ShutterSpeed shutterSpeed = shutterSpeeds.get(currentIndex);
         String text = shutterSpeed.toString();
@@ -68,22 +68,22 @@ public class ShutterSpeedButton extends CycleButton {
         if (shutterSpeed.equals(ShutterSpeed.DEFAULT))
             text = text + "•";
 
-        Font font = Minecraft.getInstance().font;
-        int textWidth = font.width(text);
+        TextRenderer font = MinecraftClient.getInstance().textRenderer;
+        int textWidth = font.getWidth(text);
         int xPos = 35 - (textWidth / 2);
 
-        guiGraphics.drawString(font, text, getX() + xPos, getY() + 4, secondaryFontColor, false);
-        guiGraphics.drawString(font, text, getX() + xPos, getY() + 3, mainFontColor, false);
+        guiGraphics.drawText(font, text, getX() + xPos, getY() + 4, secondaryFontColor, false);
+        guiGraphics.drawText(font, text, getX() + xPos, getY() + 3, mainFontColor, false);
     }
 
     @Override
-    public void renderToolTip(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        guiGraphics.renderTooltip(Minecraft.getInstance().font, Component.translatable("gui.exposure.viewfinder.shutter_speed.tooltip"), mouseX, mouseY);
+    public void renderToolTip(@NotNull DrawContext guiGraphics, int mouseX, int mouseY) {
+        guiGraphics.drawTooltip(MinecraftClient.getInstance().textRenderer, Text.translatable("gui.exposure.viewfinder.shutter_speed.tooltip"), mouseX, mouseY);
     }
 
     @Override
     protected void onCycle() {
-        CameraInHand camera = CameraInHand.getActive(Minecraft.getInstance().player);
+        CameraInHand camera = CameraInHand.getActive(MinecraftClient.getInstance().player);
         if (!camera.isEmpty()) {
             if (camera.getItem().getShutterSpeed(camera.getStack()) != shutterSpeeds.get(currentIndex)) {
                 SynchronizedCameraInHandActions.setShutterSpeed(shutterSpeeds.get(currentIndex));

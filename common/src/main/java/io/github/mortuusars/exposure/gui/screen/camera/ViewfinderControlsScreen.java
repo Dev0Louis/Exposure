@@ -1,7 +1,6 @@
 package io.github.mortuusars.exposure.gui.screen.camera;
 
 import com.google.common.base.Preconditions;
-import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.ExposureClient;
@@ -13,50 +12,51 @@ import io.github.mortuusars.exposure.gui.screen.element.IElementWithTooltip;
 import io.github.mortuusars.exposure.gui.screen.camera.button.*;
 import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.util.CameraInHand;
-import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.Options;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.ImageButton;
-import net.minecraft.client.gui.components.Renderable;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Drawable;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.gui.widget.TexturedButtonWidget;
+import net.minecraft.client.option.GameOptions;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 
 public class ViewfinderControlsScreen extends Screen {
-    public static final ResourceLocation TEXTURE = Exposure.resource("textures/gui/viewfinder/viewfinder_camera_controls.png");
+    public static final Identifier TEXTURE = Exposure.resource("textures/gui/viewfinder/viewfinder_camera_controls.png");
 
-    private final Player player;
-    private final ClientLevel level;
+    private final PlayerEntity player;
+    private final ClientWorld level;
     private final long openedAtTimestamp;
 
     public ViewfinderControlsScreen() {
-        super(Component.empty());
+        super(Text.empty());
 
-        player = Minecraft.getInstance().player;
-        level = Minecraft.getInstance().level;
+        player = MinecraftClient.getInstance().player;
+        level = MinecraftClient.getInstance().world;
         assert level != null;
-        openedAtTimestamp = level.getGameTime();
+        openedAtTimestamp = level.getTime();
     }
 
     @Override
-    public boolean isPauseScreen() {
+    public boolean shouldPause() {
         return false;
     }
 
     @Override
     public void tick() {
         refreshMovementKeys();
-        Minecraft.getInstance().handleKeybinds();
+        MinecraftClient.getInstance().handleInputEvents();
     }
 
     @Override
@@ -81,82 +81,82 @@ public class ViewfinderControlsScreen extends Screen {
         // Order of adding influences TAB key behavior
 
         ShutterSpeedButton shutterSpeedButton = new ShutterSpeedButton(this, leftPos + 94, topPos + 226, 69, 12, 112, 0, TEXTURE);
-        addRenderableWidget(shutterSpeedButton);
+        addDrawableChild(shutterSpeedButton);
 
         FocalLengthButton focalLengthButton = new FocalLengthButton(this, elementX, elementY, 48, 18, 0, 0, TEXTURE);
-        addRenderableOnly(focalLengthButton);
+        addDrawable(focalLengthButton);
         elementX += focalLengthButton.getWidth();
 
-        ImageButton separator1 = new ImageButton(elementX, elementY, 1, 18, 111, 0, TEXTURE, pButton -> {});
-        addRenderableOnly(separator1);
+        TexturedButtonWidget separator1 = new TexturedButtonWidget(elementX, elementY, 1, 18, 111, 0, TEXTURE, pButton -> {});
+        addDrawable(separator1);
         elementX += separator1.getWidth();
 
         CompositionGuideButton compositionGuideButton = new CompositionGuideButton(this, elementX, elementY, 15, 18, 48, 0, TEXTURE);
-        addRenderableWidget(compositionGuideButton);
+        addDrawableChild(compositionGuideButton);
         elementX += compositionGuideButton.getWidth();
 
-        ImageButton separator2 = new ImageButton(elementX, elementY, 1, 18, 111, 0, TEXTURE, pButton -> {});
-        addRenderableOnly(separator2);
+        TexturedButtonWidget separator2 = new TexturedButtonWidget(elementX, elementY, 1, 18, 111, 0, TEXTURE, pButton -> {});
+        addDrawable(separator2);
         elementX += separator2.getWidth();
 
         if (hasFlashAttached) {
             FlashModeButton flashModeButton = new FlashModeButton(this, elementX, elementY, 15, 18, 48, 0, TEXTURE);
-            addRenderableWidget(flashModeButton);
+            addDrawableChild(flashModeButton);
             elementX += flashModeButton.getWidth();
 
-            ImageButton separator3 = new ImageButton(elementX, elementY, 1, 18, 111, 0, TEXTURE, pButton -> {});
-            addRenderableOnly(separator3);
+            TexturedButtonWidget separator3 = new TexturedButtonWidget(elementX, elementY, 1, 18, 111, 0, TEXTURE, pButton -> {});
+            addDrawable(separator3);
             elementX += separator3.getWidth();
         }
 
         FrameCounterButton frameCounterButton = new FrameCounterButton(this, elementX, elementY, 48, 18, 63, 0, TEXTURE);
-        addRenderableOnly(frameCounterButton);
+        addDrawable(frameCounterButton);
     }
 
     /**
      * When screen is opened - all keys are released. If we do not refresh them - player would stop moving (if they had).
      */
     private void refreshMovementKeys() {
-        Consumer<KeyMapping> update = keyMapping -> {
-            if (keyMapping.key.getType() == InputConstants.Type.MOUSE) {
-                keyMapping.setDown(MouseHandler.isMouseButtonHeld(keyMapping.key.getValue()));
+        Consumer<KeyBinding> update = keyMapping -> {
+            if (keyMapping.boundKey.getCategory() == InputUtil.Type.MOUSE) {
+                keyMapping.setPressed(MouseHandler.isMouseButtonHeld(keyMapping.boundKey.getCode()));
             }
             else {
-                long windowId = Minecraft.getInstance().getWindow().getWindow();
-                keyMapping.setDown(InputConstants.isKeyDown(windowId, keyMapping.key.getValue()));
+                long windowId = MinecraftClient.getInstance().getWindow().getHandle();
+                keyMapping.setPressed(InputUtil.isKeyPressed(windowId, keyMapping.boundKey.getCode()));
             }
         };
 
         update.accept(ExposureClient.getViewfinderControlsKey());
-        Options opt = Minecraft.getInstance().options;
-        update.accept(opt.keyUp);
-        update.accept(opt.keyDown);
-        update.accept(opt.keyLeft);
-        update.accept(opt.keyRight);
-        update.accept(opt.keyJump);
-        update.accept(opt.keySprint);
+        GameOptions opt = MinecraftClient.getInstance().options;
+        update.accept(opt.forwardKey);
+        update.accept(opt.backKey);
+        update.accept(opt.leftKey);
+        update.accept(opt.rightKey);
+        update.accept(opt.jumpKey);
+        update.accept(opt.sprintKey);
     }
 
     @Override
-    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!ViewfinderClient.isLookingThrough()) {
-            this.onClose();
+            this.close();
             return;
         }
 
-        if (Minecraft.getInstance().options.hideGui)
+        if (MinecraftClient.getInstance().options.hudHidden)
             return;
 
-        guiGraphics.pose().pushPose();
+        guiGraphics.getMatrices().push();
 
         float viewfinderScale = ViewfinderOverlay.getScale();
         if (viewfinderScale != 1.0f) {
-            guiGraphics.pose().translate(width / 2f, height / 2f, 0);
-            guiGraphics.pose().scale(viewfinderScale, viewfinderScale, viewfinderScale);
-            guiGraphics.pose().translate(-width / 2f, -height / 2f, 0);
+            guiGraphics.getMatrices().translate(width / 2f, height / 2f, 0);
+            guiGraphics.getMatrices().scale(viewfinderScale, viewfinderScale, viewfinderScale);
+            guiGraphics.getMatrices().translate(-width / 2f, -height / 2f, 0);
         }
 
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
         RenderSystem.setShaderTexture(0, TEXTURE);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -164,27 +164,27 @@ public class ViewfinderControlsScreen extends Screen {
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
-        for(Renderable renderable : this.renderables) {
-            if (renderable instanceof IElementWithTooltip tooltipElement && renderable instanceof AbstractWidget widget
-                && widget.visible && widget.isHoveredOrFocused()) {
+        for(Drawable renderable : this.drawables) {
+            if (renderable instanceof IElementWithTooltip tooltipElement && renderable instanceof ClickableWidget widget
+                && widget.visible && widget.isSelected()) {
                 tooltipElement.renderToolTip(guiGraphics, mouseX, mouseY);
                 break;
             }
         }
 
-        guiGraphics.pose().popPose();
+        guiGraphics.getMatrices().pop();
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
 
-        if (!handled && button == 1 && Minecraft.getInstance().gameMode != null) {
-            InteractionHand activeHand = CameraInHand.getActiveHand(player);
+        if (!handled && button == 1 && MinecraftClient.getInstance().interactionManager != null) {
+            Hand activeHand = CameraInHand.getActiveHand(player);
             if (activeHand != null) {
-                ItemStack itemInHand = player.getItemInHand(activeHand);
+                ItemStack itemInHand = player.getStackInHand(activeHand);
                 if (itemInHand.getItem() instanceof CameraItem) {
-                    Minecraft.getInstance().gameMode.useItem(player, activeHand);
+                    MinecraftClient.getInstance().interactionManager.interactItem(player, activeHand);
                 }
             }
 
@@ -197,8 +197,8 @@ public class ViewfinderControlsScreen extends Screen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (ExposureClient.getViewfinderControlsKey().matchesMouse(button)) {
-            if (level.getGameTime() - openedAtTimestamp >= 5)
-                this.onClose();
+            if (level.getTime() - openedAtTimestamp >= 5)
+                this.close();
 
             return false;
         }
@@ -208,9 +208,9 @@ public class ViewfinderControlsScreen extends Screen {
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        if (ExposureClient.getViewfinderControlsKey().matches(keyCode, scanCode)) {
-            if (level.getGameTime() - openedAtTimestamp >= 5)
-                this.onClose();
+        if (ExposureClient.getViewfinderControlsKey().matchesKey(keyCode, scanCode)) {
+            if (level.getTime() - openedAtTimestamp >= 5)
+                this.close();
 
             return false;
         }
@@ -220,17 +220,17 @@ public class ViewfinderControlsScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        Preconditions.checkState(minecraft != null);
+        Preconditions.checkState(client != null);
 
         boolean handled = super.keyPressed(keyCode, scanCode, modifiers);
         if (handled)
             return true;
 
-        if (keyCode == InputConstants.KEY_ADD || keyCode == InputConstants.KEY_EQUALS) {
+        if (keyCode == InputUtil.GLFW_KEY_KP_ADD || keyCode == InputUtil.GLFW_KEY_EQUAL) {
             ViewfinderClient.zoom(ZoomDirection.IN, true);
             return true;
         }
-        else if (keyCode == 333 /*KEY_SUBTRACT*/ || keyCode == InputConstants.KEY_MINUS) {
+        else if (keyCode == 333 /*KEY_SUBTRACT*/ || keyCode == InputUtil.GLFW_KEY_MINUS) {
             ViewfinderClient.zoom(ZoomDirection.OUT, true);
             return true;
         }

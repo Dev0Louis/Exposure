@@ -5,7 +5,7 @@ import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.ingredient.ICraftingGridHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.category.extensions.vanilla.crafting.ICraftingCategoryExtension;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -15,10 +15,10 @@ public record NbtTransferringShapelessExtension(AbstractNbtTransferringRecipe re
     @Override
     public void setRecipe(@NotNull IRecipeLayoutBuilder builder, @NotNull ICraftingGridHelper craftingGridHelper, @NotNull IFocusGroup focuses) {
         List<List<ItemStack>> inputs = recipe.getIngredients().stream()
-                .map(ingredient -> List.of(ingredient.getItems()))
+                .map(ingredient -> List.of(ingredient.getMatchingStacks()))
                 .collect(Collectors.toList());
 
-        inputs.add(0, List.of(recipe.getTransferIngredient().getItems()));
+        inputs.add(0, List.of(recipe.getTransferIngredient().getMatchingStacks()));
 
         ItemStack resultItem = recipe.getResult();
 

@@ -13,20 +13,18 @@ import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.util.CameraInHand;
 import io.github.mortuusars.exposure.util.Fov;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.client.CameraType;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.PostChain;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.PostEffectProcessor;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.option.Perspective;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 
 public class ViewfinderClient {
     public static final float ZOOM_STEP = 8f;
@@ -46,36 +44,36 @@ public class ViewfinderClient {
     }
 
     public static boolean isLookingThrough() {
-        return isOpen() && (Minecraft.getInstance().options.getCameraType() == CameraType.FIRST_PERSON
-                || Minecraft.getInstance().options.getCameraType() == CameraType.THIRD_PERSON_FRONT);
+        return isOpen() && (MinecraftClient.getInstance().options.getPerspective() == Perspective.FIRST_PERSON
+                || MinecraftClient.getInstance().options.getPerspective() == Perspective.THIRD_PERSON_FRONT);
     }
 
     public static void open() {
-        LocalPlayer player = Minecraft.getInstance().player;
+        ClientPlayerEntity player = MinecraftClient.getInstance().player;
         Preconditions.checkState(player != null, "Player should not be null");
-        Preconditions.checkState(player.level().isClientSide(), "This should be called only client-side.");
+        Preconditions.checkState(player.getWorld().isClient(), "This should be called only client-side.");
 
         if (isOpen())
             return;
 
-        @Nullable InteractionHand activeHand = CameraInHand.getActiveHand(player);
+        @Nullable Hand activeHand = CameraInHand.getActiveHand(player);
         Preconditions.checkState(activeHand != null, "Player should have active camera in hand.");
 
-        ItemAndStack<CameraItem> camera = new ItemAndStack<>(player.getItemInHand(activeHand));
+        ItemAndStack<CameraItem> camera = new ItemAndStack<>(player.getStackInHand(activeHand));
 
         focalRange = camera.getItem().getFocalRange(camera.getStack());
-        targetFov = Fov.focalLengthToFov(Mth.clamp(camera.getItem().getFocalLength(camera.getStack()), focalRange.min(), focalRange.max()));
+        targetFov = Fov.focalLengthToFov(MathHelper.clamp(camera.getItem().getFocalLength(camera.getStack()), focalRange.min(), focalRange.max()));
 
         isOpen = true;
 
         camera.getItem().getAttachment(camera.getStack(), CameraItem.FILTER_ATTACHMENT)
                 .flatMap(Filters::getShaderOf)
                 .ifPresent(shaderLocation -> {
-                    PostChain effect = Minecraft.getInstance().gameRenderer.currentEffect();
+                    PostEffectProcessor effect = MinecraftClient.getInstance().gameRenderer.getPostProcessor();
                     if (effect != null)
                         previousShaderEffect = effect.getName();
 
-                    Minecraft.getInstance().gameRenderer.loadEffect(shaderLocation);
+                    MinecraftClient.getInstance().gameRenderer.loadPostProcessor(shaderLocation);
                 });
 
 //        Optional<ItemStack> attachment = camera.getItem().getAttachment(camera.getStack(), CameraItem.FILTER_ATTACHMENT);
@@ -99,12 +97,12 @@ public class ViewfinderClient {
 
     public static void close() {
         isOpen = false;
-        targetFov = Minecraft.getInstance().options.fov().get();
+        targetFov = MinecraftClient.getInstance().options.getFov().getValue();
 
-        Minecraft.getInstance().gameRenderer.shutdownEffect();
+        MinecraftClient.getInstance().gameRenderer.disablePostProcessor();
 
         if (shouldRestorePreviousShaderEffect() && previousShaderEffect != null)
-            Minecraft.getInstance().gameRenderer.loadEffect(new ResourceLocation(previousShaderEffect));
+            MinecraftClient.getInstance().gameRenderer.loadPostProcessor(new Identifier(previousShaderEffect));
 
         previousShaderEffect = null;
     }
@@ -134,7 +132,7 @@ public class ViewfinderClient {
     }
 
     public static void zoom(ZoomDirection direction, boolean precise) {
-        double step = ZOOM_STEP * (1f - Mth.clamp((focalRange.min() - currentFov) / focalRange.min(), 0.3f, 1f));
+        double step = ZOOM_STEP * (1f - MathHelper.clamp((focalRange.min() - currentFov) / focalRange.min(), 0.3f, 1f));
         double inertia = Math.abs(targetFov - currentFov) * 0.8f;
         double change = step + inertia;
 
@@ -143,12 +141,12 @@ public class ViewfinderClient {
 
         double prevFov = targetFov;
 
-        double fov = Mth.clamp(targetFov + (direction == ZoomDirection.IN ? -change : +change),
+        double fov = MathHelper.clamp(targetFov + (direction == ZoomDirection.IN ? -change : +change),
                 Fov.focalLengthToFov(focalRange.max()),
                 Fov.focalLengthToFov(focalRange.min()));
 
         if (Math.abs(prevFov - fov) > 0.01f)
-            Objects.requireNonNull(Minecraft.getInstance().player).playSound(Exposure.SoundEvents.CAMERA_LENS_RING_CLICK.get());
+            Objects.requireNonNull(MinecraftClient.getInstance().player).playSoundIfNotSilent(Exposure.SoundEvents.CAMERA_LENS_RING_CLICK.get());
 
         targetFov = fov;
         SynchronizedCameraInHandActions.setZoom(Fov.fovToFocalLength(fov));
@@ -158,13 +156,13 @@ public class ViewfinderClient {
         if (!isLookingThrough())
             return sensitivity;
 
-        double modifier = Mth.clamp(1f - (Config.Client.VIEWFINDER_ZOOM_SENSITIVITY_MODIFIER.get()
-                * ((Minecraft.getInstance().options.fov().get() - currentFov) / 5f)), 0.01, 2f);
+        double modifier = MathHelper.clamp(1f - (Config.Client.VIEWFINDER_ZOOM_SENSITIVITY_MODIFIER.get()
+                * ((MinecraftClient.getInstance().options.getFov().getValue() - currentFov) / 5f)), 0.01, 2f);
         return sensitivity * modifier;
     }
 
-    public static void onPlayerTick(Player player) {
-        if (!player.equals(Minecraft.getInstance().player))
+    public static void onPlayerTick(PlayerEntity player) {
+        if (!player.equals(MinecraftClient.getInstance().player))
             return;
 
         boolean cameraActive = CameraInHand.isActive(player);
@@ -185,12 +183,12 @@ public class ViewfinderClient {
 
     public static double modifyFov(double fov) {
         if (isLookingThrough()) {
-            currentFov = Mth.lerp(Math.min(0.6f * Minecraft.getInstance().getDeltaFrameTime(), 0.6f), currentFov, targetFov);
+            currentFov = MathHelper.lerp(Math.min(0.6f * MinecraftClient.getInstance().getLastFrameDuration(), 0.6f), currentFov, targetFov);
             shouldRestoreFov = true;
             return currentFov;
         }
         else if (shouldRestoreFov && Math.abs(currentFov - fov) > 0.00001) {
-            currentFov = Mth.lerp(Math.min(0.8f * Minecraft.getInstance().getDeltaFrameTime(), 0.8f), currentFov, fov);
+            currentFov = MathHelper.lerp(Math.min(0.8f * MinecraftClient.getInstance().getLastFrameDuration(), 0.8f), currentFov, fov);
             return currentFov;
         } else {
             currentFov = fov;

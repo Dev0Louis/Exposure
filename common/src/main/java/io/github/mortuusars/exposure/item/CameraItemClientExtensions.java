@@ -1,42 +1,42 @@
 package io.github.mortuusars.exposure.item;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.model.AnimationUtils;
-import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
+import net.minecraft.client.render.entity.model.CrossbowPosing;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Arm;
 
 public class CameraItemClientExtensions {
-    public static void applyDefaultHoldingPose(HumanoidModel<?> model, LivingEntity entity, HumanoidArm arm) {
-        model.head.xRot += 0.4f; // If we turn head down completely - arms will be too low.
-        if (arm == HumanoidArm.RIGHT) {
-            AnimationUtils.animateCrossbowHold(model.rightArm, model.leftArm, model.head, true);
-        } else if (arm == HumanoidArm.LEFT) {
-            AnimationUtils.animateCrossbowHold(model.rightArm, model.leftArm, model.head, false);
+    public static void applyDefaultHoldingPose(BipedEntityModel<?> model, LivingEntity entity, Arm arm) {
+        model.head.pitch += 0.4f; // If we turn head down completely - arms will be too low.
+        if (arm == Arm.RIGHT) {
+            CrossbowPosing.hold(model.rightArm, model.leftArm, model.head, true);
+        } else if (arm == Arm.LEFT) {
+            CrossbowPosing.hold(model.rightArm, model.leftArm, model.head, false);
         }
-        model.head.xRot += 0.3f;
+        model.head.pitch += 0.3f;
     }
 
-    public static void applySelfieHoldingPose(HumanoidModel<?> model, LivingEntity entity, HumanoidArm arm) {
-        ModelPart cameraArm = arm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+    public static void applySelfieHoldingPose(BipedEntityModel<?> model, LivingEntity entity, Arm arm) {
+        ModelPart cameraArm = arm == Arm.RIGHT ? model.rightArm : model.leftArm;
 
         // Arm follows camera:
-        cameraArm.xRot = (-(float)Math.PI / 2F) + model.head.xRot + 0.15F;
-        cameraArm.yRot = model.head.yRot + (arm == HumanoidArm.RIGHT ? -0.3f : 0.3f);
-        cameraArm.zRot = 0f;
+        cameraArm.pitch = (-(float)Math.PI / 2F) + model.head.pitch + 0.15F;
+        cameraArm.yaw = model.head.yaw + (arm == Arm.RIGHT ? -0.3f : 0.3f);
+        cameraArm.roll = 0f;
 
         // Undo arm bobbing:
-        AnimationUtils.bobModelPart(cameraArm, entity.tickCount + Minecraft.getInstance().getFrameTime(),
-                arm == HumanoidArm.LEFT ? 1.0F : -1.0F);
+        CrossbowPosing.swingArm(cameraArm, entity.age + MinecraftClient.getInstance().getTickDelta(),
+                arm == Arm.LEFT ? 1.0F : -1.0F);
     }
 
-    public static float itemPropertyFunction(ItemStack stack, ClientLevel clientLevel, LivingEntity livingEntity, int seed) {
+    public static float itemPropertyFunction(ItemStack stack, ClientWorld clientLevel, LivingEntity livingEntity, int seed) {
         if (stack.getItem() instanceof CameraItem cameraItem && cameraItem.isActive(stack)) {
             if (cameraItem.isInSelfieMode(stack))
-                return livingEntity == Minecraft.getInstance().player ? 0.2f : 0.3f;
+                return livingEntity == MinecraftClient.getInstance().player ? 0.2f : 0.3f;
             else
                 return 0.1f;
         }
@@ -45,6 +45,6 @@ public class CameraItemClientExtensions {
     }
 
     public static void releaseUseButton() {
-        Minecraft.getInstance().options.keyUse.setDown(false);
+        MinecraftClient.getInstance().options.useKey.setPressed(false);
     }
 }

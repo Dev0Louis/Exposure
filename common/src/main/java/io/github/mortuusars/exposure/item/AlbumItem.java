@@ -7,28 +7,6 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.PlatformHelper;
 import io.github.mortuusars.exposure.menu.AlbumMenu;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.stats.Stats;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LecternBlock;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,13 +14,35 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.LecternBlock;
+import net.minecraft.client.item.TooltipContext;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.stat.Stats;
+import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 public class AlbumItem extends Item {
     public static final String TAG_PAGES = "Pages";
     public static final String TAG_TITLE = "Title";
     public static final String TAG_AUTHOR = "Author";
 
-    public AlbumItem(Properties properties) {
+    public AlbumItem(Settings properties) {
         super(properties);
     }
 
@@ -56,36 +56,36 @@ public class AlbumItem extends Item {
 
     public Optional<AlbumPage> getPage(ItemStack albumStack, int index) {
         Preconditions.checkElementIndex(index, getMaxPages());
-        CompoundTag tag = albumStack.getTag();
-        if (tag == null || tag.isEmpty() || !tag.contains(TAG_PAGES, Tag.TAG_LIST))
+        NbtCompound tag = albumStack.getNbt();
+        if (tag == null || tag.isEmpty() || !tag.contains(TAG_PAGES, NbtElement.LIST_TYPE))
             return Optional.empty();
 
-        ListTag pagesTag = getOrCreatePagesTag(albumStack);
+        NbtList pagesTag = getOrCreatePagesTag(albumStack);
         return pagesTag.size() - 1 >= index ?
                 Optional.ofNullable(AlbumPage.fromTag(pagesTag.getCompound(index), isEditable())) : Optional.empty();
     }
 
     public void setPage(ItemStack albumStack, AlbumPage page, int index) {
         Preconditions.checkElementIndex(index, getMaxPages());
-        ListTag pagesTag = getOrCreatePagesTag(albumStack);
+        NbtList pagesTag = getOrCreatePagesTag(albumStack);
 
         while (pagesTag.size() - 1 < index) {
-            pagesTag.add(createEmptyPage().toTag(new CompoundTag()));
+            pagesTag.add(createEmptyPage().toTag(new NbtCompound()));
         }
 
-        pagesTag.set(index, page.toTag(new CompoundTag()));
+        pagesTag.set(index, page.toTag(new NbtCompound()));
     }
 
     public AlbumPage createEmptyPage() {
-        return new AlbumPage(ItemStack.EMPTY, isEditable() ? Either.left("") : Either.right(Component.empty()));
+        return new AlbumPage(ItemStack.EMPTY, isEditable() ? Either.left("") : Either.right(Text.empty()));
     }
 
     public List<AlbumPage> getPages(ItemStack albumStack) {
-        CompoundTag tag = albumStack.getTag();
-        if (tag == null || tag.isEmpty() || !tag.contains(TAG_PAGES, Tag.TAG_LIST))
+        NbtCompound tag = albumStack.getNbt();
+        if (tag == null || tag.isEmpty() || !tag.contains(TAG_PAGES, NbtElement.LIST_TYPE))
             return Collections.emptyList();
 
-        ListTag pagesList = tag.getList(TAG_PAGES, Tag.TAG_COMPOUND);
+        NbtList pagesList = tag.getList(TAG_PAGES, NbtElement.COMPOUND_TYPE);
         if (pagesList.isEmpty())
             return Collections.emptyList();
 
@@ -99,85 +99,85 @@ public class AlbumItem extends Item {
     }
 
     public void addPage(ItemStack albumStack, AlbumPage page) {
-        ListTag pages = getOrCreatePagesTag(albumStack);
-        pages.add(page.toTag(new CompoundTag()));
+        NbtList pages = getOrCreatePagesTag(albumStack);
+        pages.add(page.toTag(new NbtCompound()));
     }
 
     public void addPage(ItemStack albumStack, AlbumPage page, int index) {
-        ListTag pages = getOrCreatePagesTag(albumStack);
-        pages.add(index, page.toTag(new CompoundTag()));
+        NbtList pages = getOrCreatePagesTag(albumStack);
+        pages.add(index, page.toTag(new NbtCompound()));
     }
 
     public int getPhotographsCount(ItemStack albumStack) {
-        @Nullable CompoundTag tag = albumStack.getTag();
-        if (tag == null || !tag.contains(TAG_PAGES, Tag.TAG_LIST))
+        @Nullable NbtCompound tag = albumStack.getNbt();
+        if (tag == null || !tag.contains(TAG_PAGES, NbtElement.LIST_TYPE))
             return 0;
 
         int count = 0;
-        ListTag pagesTag = tag.getList(TAG_PAGES, Tag.TAG_COMPOUND);
+        NbtList pagesTag = tag.getList(TAG_PAGES, NbtElement.COMPOUND_TYPE);
         for (int i = 0; i < pagesTag.size(); i++) {
-            CompoundTag pageTag = pagesTag.getCompound(i);
-            if (pageTag.contains(AlbumPage.PHOTOGRAPH_TAG, Tag.TAG_COMPOUND))
+            NbtCompound pageTag = pagesTag.getCompound(i);
+            if (pageTag.contains(AlbumPage.PHOTOGRAPH_TAG, NbtElement.COMPOUND_TYPE))
                 count++;
         }
 
         return count;
     }
 
-    protected ListTag getOrCreatePagesTag(ItemStack albumStack) {
-        CompoundTag tag = albumStack.getOrCreateTag();
-        ListTag list = tag.getList(TAG_PAGES, Tag.TAG_COMPOUND);
+    protected NbtList getOrCreatePagesTag(ItemStack albumStack) {
+        NbtCompound tag = albumStack.getOrCreateNbt();
+        NbtList list = tag.getList(TAG_PAGES, NbtElement.COMPOUND_TYPE);
         tag.put(TAG_PAGES, list);
         return list;
     }
 
     @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand usedHand) {
-        ItemStack itemStack = player.getItemInHand(usedHand);
+    public @NotNull TypedActionResult<ItemStack> use(World level, PlayerEntity player, Hand usedHand) {
+        ItemStack itemStack = player.getStackInHand(usedHand);
 
-        if (player instanceof ServerPlayer serverPlayer)
+        if (player instanceof ServerPlayerEntity serverPlayer)
             open(serverPlayer, itemStack, isEditable());
 
-        player.awardStat(Stats.ITEM_USED.get(this));
-        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
+        player.incrementStat(Stats.USED.getOrCreateStat(this));
+        return TypedActionResult.success(itemStack, level.isClient());
     }
 
     @Override
-    public @NotNull InteractionResult useOn(UseOnContext context) {
-        BlockPos blockPos = context.getClickedPos();
-        Level level = context.getLevel();
+    public @NotNull ActionResult useOnBlock(ItemUsageContext context) {
+        BlockPos blockPos = context.getBlockPos();
+        World level = context.getWorld();
         BlockState blockState = level.getBlockState(blockPos);
-        if (blockState.is(Blocks.LECTERN))
-            return LecternBlock.tryPlaceBook(context.getPlayer(), level, blockPos, blockState,
-                    context.getItemInHand()) ? InteractionResult.sidedSuccess(level.isClientSide) : InteractionResult.PASS;
-        return InteractionResult.PASS;
+        if (blockState.isOf(Blocks.LECTERN))
+            return LecternBlock.putBookIfAbsent(context.getPlayer(), level, blockPos, blockState,
+                    context.getStack()) ? ActionResult.success(level.isClient) : ActionResult.PASS;
+        return ActionResult.PASS;
     }
 
-    public void open(ServerPlayer player, ItemStack albumStack, boolean editable) {
-        MenuProvider menuProvider = new MenuProvider() {
+    public void open(ServerPlayerEntity player, ItemStack albumStack, boolean editable) {
+        NamedScreenHandlerFactory menuProvider = new NamedScreenHandlerFactory() {
             @Override
-            public @NotNull Component getDisplayName() {
-                return albumStack.getHoverName();
+            public @NotNull Text getDisplayName() {
+                return albumStack.getName();
             }
 
             @Override
-            public @NotNull AbstractContainerMenu createMenu(int containerId, @NotNull Inventory playerInventory, @NotNull Player player) {
+            public @NotNull ScreenHandler createMenu(int containerId, @NotNull PlayerInventory playerInventory, @NotNull PlayerEntity player) {
                 return new AlbumMenu(containerId, playerInventory, new ItemAndStack<>(albumStack), editable);
             }
         };
 
         PlatformHelper.openMenu(player, menuProvider, buffer -> {
-            buffer.writeItem(albumStack);
+            buffer.writeItemStack(albumStack);
             buffer.writeBoolean(editable);
         });
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltipComponents, TooltipFlag isAdvanced) {
+    public void appendTooltip(ItemStack stack, @Nullable World level, List<Text> tooltipComponents, TooltipContext isAdvanced) {
         if (Config.Client.ALBUM_SHOW_PHOTOS_COUNT.get()) {
             int photographsCount = getPhotographsCount(stack);
             if (photographsCount > 0)
-                tooltipComponents.add(Component.translatable("item.exposure.album.tooltip.photos_count", photographsCount));
+                tooltipComponents.add(Text.translatable("item.exposure.album.tooltip.photos_count", photographsCount));
         }
     }
 
@@ -192,10 +192,10 @@ public class AlbumItem extends Item {
             throw new IllegalArgumentException("Cannot sign fixed album.");
 
         ItemStack albumCopy = album.copy();
-        ListTag pagesTag = getOrCreatePagesTag(albumCopy);
+        NbtList pagesTag = getOrCreatePagesTag(albumCopy);
 
         for (int i = pagesTag.size() - 1; i >= 0; i--) {
-            CompoundTag pageTag = pagesTag.getCompound(i);
+            NbtCompound pageTag = pagesTag.getCompound(i);
             AlbumPage page = AlbumPage.fromTag(pageTag, isEditable());
 
             // Remove until we have page with content
@@ -207,13 +207,13 @@ public class AlbumItem extends Item {
 
         for (int i = 0; i < pagesTag.size(); i++) {
             AlbumPage page = AlbumPage.fromTag(pagesTag.getCompound(i), isEditable());
-            pagesTag.set(i, page.toSigned().toTag(new CompoundTag()));
+            pagesTag.set(i, page.toSigned().toTag(new NbtCompound()));
         }
 
         ItemStack signedAlbum = new ItemStack(Exposure.Items.SIGNED_ALBUM.get());
-        signedAlbum.setTag(albumCopy.getTag());
-        signedAlbum.getOrCreateTag().putString(TAG_TITLE, title);
-        signedAlbum.getOrCreateTag().putString(TAG_AUTHOR, author);
+        signedAlbum.setNbt(albumCopy.getNbt());
+        signedAlbum.getOrCreateNbt().putString(TAG_TITLE, title);
+        signedAlbum.getOrCreateNbt().putString(TAG_AUTHOR, author);
         return signedAlbum;
     }
 }

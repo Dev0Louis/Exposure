@@ -4,19 +4,19 @@ import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.server.CameraSetSelfieModeC2SP;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.client.CameraType;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionHand;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.Perspective;
+import net.minecraft.util.Hand;
 
 public class SelfieClient {
-    public static void update(ItemAndStack<CameraItem> camera, InteractionHand activeHand, boolean effects) {
-        if (Minecraft.getInstance().player == null)
+    public static void update(ItemAndStack<CameraItem> camera, Hand activeHand, boolean effects) {
+        if (MinecraftClient.getInstance().player == null)
             return;
 
-        boolean selfieMode = Minecraft.getInstance().options.getCameraType() == CameraType.THIRD_PERSON_FRONT;
+        boolean selfieMode = MinecraftClient.getInstance().options.getPerspective() == Perspective.THIRD_PERSON_FRONT;
 
         if (effects)
-            camera.getItem().setSelfieModeWithEffects(Minecraft.getInstance().player, camera.getStack(), selfieMode);
+            camera.getItem().setSelfieModeWithEffects(MinecraftClient.getInstance().player, camera.getStack(), selfieMode);
         else
             camera.getItem().setSelfieMode(camera.getStack(), selfieMode);
 

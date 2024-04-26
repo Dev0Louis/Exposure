@@ -8,34 +8,31 @@ import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
-import net.minecraft.commands.synchronization.ArgumentTypeInfo;
-import net.minecraft.commands.synchronization.ArgumentTypeInfos;
-import net.minecraft.commands.synchronization.SingletonArgumentInfo;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-
+import net.minecraft.block.Block;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.command.argument.serialize.ArgumentSerializer;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityDimensions;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.item.Item;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.sound.SoundEvent;
 import java.util.function.Supplier;
 
 public class RegisterImpl {
     public static <T extends Block> Supplier<T> block(String id, Supplier<T> supplier) {
-        T obj = Registry.register(BuiltInRegistries.BLOCK, Exposure.resource(id), supplier.get());
+        T obj = Registry.register(Registries.BLOCK, Exposure.resource(id), supplier.get());
         return () -> obj;
     }
 
     public static <T extends BlockEntityType<E>, E extends BlockEntity> Supplier<T> blockEntityType(String id, Supplier<T> supplier) {
-        T obj = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, Exposure.resource(id), supplier.get());
+        T obj = Registry.register(Registries.BLOCK_ENTITY_TYPE, Exposure.resource(id), supplier.get());
         return () -> obj;
     }
 
@@ -44,14 +41,14 @@ public class RegisterImpl {
     }
 
     public static <T extends Item> Supplier<T> item(String id, Supplier<T> supplier) {
-        T obj = Registry.register(BuiltInRegistries.ITEM, Exposure.resource(id), supplier.get());
+        T obj = Registry.register(Registries.ITEM, Exposure.resource(id), supplier.get());
         return () -> obj;
     }
 
     public static <T extends Entity> Supplier<EntityType<T>> entityType(String id, EntityType.EntityFactory<T> factory,
-                                                                        MobCategory category, float width, float height,
+                                                                        SpawnGroup category, float width, float height,
                                                                         int clientTrackingRange, boolean velocityUpdates, int updateInterval) {
-        EntityType<T> type = Registry.register(BuiltInRegistries.ENTITY_TYPE, Exposure.resource(id),
+        EntityType<T> type = Registry.register(Registries.ENTITY_TYPE, Exposure.resource(id),
                 FabricEntityTypeBuilder.create(category, factory)
                         .dimensions(EntityDimensions.fixed(width, height))
                         .trackRangeBlocks(clientTrackingRange)
@@ -62,22 +59,22 @@ public class RegisterImpl {
     }
 
     public static <T extends SoundEvent> Supplier<T> soundEvent(String id, Supplier<T> supplier) {
-        T obj = Registry.register(BuiltInRegistries.SOUND_EVENT, Exposure.resource(id), supplier.get());
+        T obj = Registry.register(Registries.SOUND_EVENT, Exposure.resource(id), supplier.get());
         return () -> obj;
     }
 
-    public static <T extends MenuType<E>, E extends AbstractContainerMenu> Supplier<MenuType<E>> menuType(String id, Register.MenuTypeSupplier<E> supplier) {
-        ExtendedScreenHandlerType<E> type = Registry.register(BuiltInRegistries.MENU, Exposure.resource(id), new ExtendedScreenHandlerType<>(supplier::create));
+    public static <T extends ScreenHandlerType<E>, E extends ScreenHandler> Supplier<ScreenHandlerType<E>> menuType(String id, Register.MenuTypeSupplier<E> supplier) {
+        ExtendedScreenHandlerType<E> type = Registry.register(Registries.SCREEN_HANDLER, Exposure.resource(id), new ExtendedScreenHandlerType<>(supplier::create));
         return () -> type;
     }
 
     public static Supplier<RecipeSerializer<?>> recipeSerializer(String id, Supplier<RecipeSerializer<?>> supplier) {
-        RecipeSerializer<?> obj = Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, Exposure.resource(id), supplier.get());
+        RecipeSerializer<?> obj = Registry.register(Registries.RECIPE_SERIALIZER, Exposure.resource(id), supplier.get());
         return () -> obj;
     }
 
-    public static <A extends ArgumentType<?>, T extends ArgumentTypeInfo.Template<A>, I extends ArgumentTypeInfo<A, T>>
-            Supplier<ArgumentTypeInfo<A, T>> commandArgumentType(String id, Class<A> infoClass, I argumentTypeInfo) {
+    public static <A extends ArgumentType<?>, T extends ArgumentSerializer.ArgumentTypeProperties<A>, I extends ArgumentSerializer<A, T>>
+            Supplier<ArgumentSerializer<A, T>> commandArgumentType(String id, Class<A> infoClass, I argumentTypeInfo) {
         ArgumentTypeRegistry.registerArgumentType(Exposure.resource(id), infoClass, argumentTypeInfo);
         return () -> argumentTypeInfo;
     }

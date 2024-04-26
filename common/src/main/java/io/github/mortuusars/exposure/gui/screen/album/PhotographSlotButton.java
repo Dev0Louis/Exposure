@@ -1,41 +1,40 @@
 package io.github.mortuusars.exposure.gui.screen.album;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.Tesselator;
 import io.github.mortuusars.exposure.ExposureClient;
 import io.github.mortuusars.exposure.item.PhotographItem;
 import io.github.mortuusars.exposure.render.PhotographRenderProperties;
 import io.github.mortuusars.exposure.render.PhotographRenderer;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.ImageButton;
-import net.minecraft.client.gui.navigation.CommonInputs;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.TexturedButtonWidget;
+import net.minecraft.client.input.KeyCodes;
+import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.math.Rect2i;
+import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
-public class PhotographSlotButton extends ImageButton {
+public class PhotographSlotButton extends TexturedButtonWidget {
 
     protected final Rect2i exposureArea;
-    protected final OnPress onRightButtonPress;
+    protected final PressAction onRightButtonPress;
     protected final Supplier<ItemStack> photograph;
     protected final boolean isEditable;
     protected boolean hasPhotograph;
 
     public PhotographSlotButton(Rect2i exposureArea, int x, int y, int width, int height, int xTexStart, int yTexStart,
-                                int yDiffTex, ResourceLocation resourceLocation, int textureWidth, int textureHeight,
-                                OnPress onLeftButtonPress, OnPress onRightButtonPress, Supplier<ItemStack> photographGetter, boolean isEditable) {
+                                int yDiffTex, Identifier resourceLocation, int textureWidth, int textureHeight,
+                                PressAction onLeftButtonPress, PressAction onRightButtonPress, Supplier<ItemStack> photographGetter, boolean isEditable) {
         super(x, y, width, height, xTexStart, yTexStart, yDiffTex, resourceLocation, textureWidth, textureHeight, onLeftButtonPress,
-                Component.translatable("item.exposure.photograph"));
+                Text.translatable("item.exposure.photograph"));
         this.exposureArea = exposureArea;
         this.onRightButtonPress = onRightButtonPress;
         this.photograph = photographGetter;
@@ -47,7 +46,7 @@ public class PhotographSlotButton extends ImageButton {
     }
 
     @Override
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void renderButton(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         ItemStack photograph = getPhotograph();
 
         if (photograph.getItem() instanceof PhotographItem) {
@@ -56,27 +55,27 @@ public class PhotographSlotButton extends ImageButton {
             PhotographRenderProperties renderProperties = PhotographRenderProperties.get(photograph);
 
             // Paper
-            renderTexture(guiGraphics, renderProperties.getAlbumPaperTexture(),
+            drawTexture(guiGraphics, renderProperties.getAlbumPaperTexture(),
                     getX(), getY(), 0, 0, 0, width, height, width, height);
 
             // Exposure
-            guiGraphics.pose().pushPose();
+            guiGraphics.getMatrices().push();
             float scale = exposureArea.getWidth() / (float) ExposureClient.getExposureRenderer().getSize();
-            guiGraphics.pose().translate(exposureArea.getX(), exposureArea.getY(), 1);
-            guiGraphics.pose().scale(scale, scale, scale);
-            MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
-            PhotographRenderer.render(photograph, false, false, guiGraphics.pose(),
-                    bufferSource, LightTexture.FULL_BRIGHT, 255, 255, 255, 255);
-            bufferSource.endBatch();
-            guiGraphics.pose().popPose();
+            guiGraphics.getMatrices().translate(exposureArea.getX(), exposureArea.getY(), 1);
+            guiGraphics.getMatrices().scale(scale, scale, scale);
+            VertexConsumerProvider.Immediate bufferSource = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
+            PhotographRenderer.render(photograph, false, false, guiGraphics.getMatrices(),
+                    bufferSource, LightmapTextureManager.MAX_LIGHT_COORDINATE, 255, 255, 255, 255);
+            bufferSource.draw();
+            guiGraphics.getMatrices().pop();
 
             // Paper overlay
             if (renderProperties.hasAlbumPaperOverlayTexture()) {
-                guiGraphics.pose().pushPose();
-                guiGraphics.pose().translate(0, 0, 2);
-                renderTexture(guiGraphics, renderProperties.getAlbumPaperOverlayTexture(),
+                guiGraphics.getMatrices().push();
+                guiGraphics.getMatrices().translate(0, 0, 2);
+                drawTexture(guiGraphics, renderProperties.getAlbumPaperOverlayTexture(),
                         getX(), getY(), 0, 0, 0, width, height, width, height);
-                guiGraphics.pose().popPose();
+                guiGraphics.getMatrices().pop();
             }
         }
         else {
@@ -84,14 +83,14 @@ public class PhotographSlotButton extends ImageButton {
         }
 
         // Album pins
-        int xTex = xTexStart + (hasPhotograph ? getWidth() : 0);
-        renderTexture(guiGraphics, resourceLocation, getX(), getY(), xTex, yTexStart, yDiffTex, width, height, textureWidth, textureHeight);
+        int xTex = u + (hasPhotograph ? getWidth() : 0);
+        drawTexture(guiGraphics, texture, getX(), getY(), xTex, v, hoveredVOffset, width, height, textureWidth, textureHeight);
     }
 
-    public void renderTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    public void renderTooltip(DrawContext guiGraphics, int mouseX, int mouseY) {
         if (isEditable && !hasPhotograph) {
-            guiGraphics.renderTooltip(Minecraft.getInstance().font,
-                    Component.translatable("gui.exposure.album.add_photograph"), mouseX, mouseY);
+            guiGraphics.drawTooltip(MinecraftClient.getInstance().textRenderer,
+                    Text.translatable("gui.exposure.album.add_photograph"), mouseX, mouseY);
             return;
         }
 
@@ -99,19 +98,19 @@ public class PhotographSlotButton extends ImageButton {
         if (photograph.isEmpty())
             return;
 
-        List<Component> itemTooltip = Screen.getTooltipFromItem(Minecraft.getInstance(), photograph);
-        itemTooltip.add(Component.translatable("gui.exposure.album.left_click_or_scroll_up_to_view"));
+        List<Text> itemTooltip = Screen.getTooltipFromItem(MinecraftClient.getInstance(), photograph);
+        itemTooltip.add(Text.translatable("gui.exposure.album.left_click_or_scroll_up_to_view"));
         if (isEditable)
-            itemTooltip.add(Component.translatable("gui.exposure.album.right_click_to_remove"));
+            itemTooltip.add(Text.translatable("gui.exposure.album.right_click_to_remove"));
 
         // Photograph image in tooltip is not rendered here
 
         if (isFocused()) {
-            guiGraphics.renderTooltip(Minecraft.getInstance().font, Lists.transform(itemTooltip,
-                    Component::getVisualOrderText), createTooltipPositioner(), mouseX, mouseY);
+            guiGraphics.drawTooltip(MinecraftClient.getInstance().textRenderer, Lists.transform(itemTooltip,
+                    Text::asOrderedText), getTooltipPositioner(), mouseX, mouseY);
         }
         else
-            guiGraphics.renderTooltip(Minecraft.getInstance().font, itemTooltip, Optional.empty(), mouseX, mouseY);
+            guiGraphics.drawTooltip(MinecraftClient.getInstance().textRenderer, itemTooltip, Optional.empty(), mouseX, mouseY);
     }
 
     @Override
@@ -119,9 +118,9 @@ public class PhotographSlotButton extends ImageButton {
         if (!this.active || !this.visible || !clicked(mouseX, mouseY))
             return false;
 
-        if (button == InputConstants.MOUSE_BUTTON_LEFT) {
+        if (button == InputUtil.field_32000) {
             this.onPress.onPress(this);
-        } else if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
+        } else if (button == InputUtil.MOUSE_BUTTON_RIGHT) {
             this.onRightButtonPress.onPress(this);
         } else
             return false;
@@ -141,7 +140,7 @@ public class PhotographSlotButton extends ImageButton {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (this.active && this.visible && Screen.hasShiftDown() && CommonInputs.selected(keyCode)) {
+        if (this.active && this.visible && Screen.hasShiftDown() && KeyCodes.isToggle(keyCode)) {
             onRightButtonPress.onPress(this);
             return true;
         }

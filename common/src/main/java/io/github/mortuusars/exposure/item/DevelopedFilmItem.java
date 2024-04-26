@@ -1,21 +1,21 @@
 package io.github.mortuusars.exposure.item;
 
 import io.github.mortuusars.exposure.camera.infrastructure.FilmType;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import net.minecraft.client.item.TooltipContext;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.world.World;
 
 public class DevelopedFilmItem extends Item implements IFilmItem {
     private final FilmType type;
 
-    public DevelopedFilmItem(FilmType type, Properties properties) {
+    public DevelopedFilmItem(FilmType type, Settings properties) {
         super(properties);
         this.type = type;
     }
@@ -26,11 +26,11 @@ public class DevelopedFilmItem extends Item implements IFilmItem {
     }
 
     @Override
-    public void appendHoverText(@NotNull ItemStack stack, @Nullable Level level, @NotNull List<Component> tooltipComponents, @NotNull TooltipFlag isAdvanced) {
+    public void appendTooltip(@NotNull ItemStack stack, @Nullable World level, @NotNull List<Text> tooltipComponents, @NotNull TooltipContext isAdvanced) {
         int exposedFrames = getExposedFramesCount(stack);
         if (exposedFrames > 0) {
-            tooltipComponents.add(Component.translatable("item.exposure.developed_film.tooltip.frame_count", exposedFrames)
-                    .withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Text.translatable("item.exposure.developed_film.tooltip.frame_count", exposedFrames)
+                    .formatted(Formatting.GRAY));
         }
     }
 }

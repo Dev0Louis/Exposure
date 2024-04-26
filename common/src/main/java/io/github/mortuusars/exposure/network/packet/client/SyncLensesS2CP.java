@@ -5,41 +5,41 @@ import io.github.mortuusars.exposure.camera.infrastructure.FocalRange;
 import io.github.mortuusars.exposure.network.PacketDirection;
 import io.github.mortuusars.exposure.network.handler.ClientPacketsHandler;
 import io.github.mortuusars.exposure.network.packet.IPacket;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.crafting.Ingredient;
 import org.jetbrains.annotations.Nullable;
-
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.util.Identifier;
 
 public record SyncLensesS2CP(ConcurrentMap<Ingredient, FocalRange> lenses) implements IPacket {
-    public static final ResourceLocation ID = Exposure.resource("sync_lenses");
+    public static final Identifier ID = Exposure.resource("sync_lenses");
 
     @Override
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return ID;
     }
 
     @Override
-    public FriendlyByteBuf toBuffer(FriendlyByteBuf buffer) {
+    public PacketByteBuf toBuffer(PacketByteBuf buffer) {
         buffer.writeVarInt(this.lenses.size());
         for (var lens : this.lenses.entrySet()) {
             Ingredient ingredient = lens.getKey();
-            ingredient.toNetwork(buffer);
+            ingredient.write(buffer);
             FocalRange focalRange = lens.getValue();
-            focalRange.toNetwork(buffer);
+            focalRange.write(buffer);
         }
         return buffer;
     }
 
-    public static SyncLensesS2CP fromBuffer(FriendlyByteBuf buffer) {
+    public static SyncLensesS2CP fromBuffer(PacketByteBuf buffer) {
         ConcurrentMap<Ingredient, FocalRange> lenses = new ConcurrentHashMap<>();
 
         int lensCount = buffer.readVarInt();
         for (int i = 0; i < lensCount; i++) {
-            Ingredient ingredient = Ingredient.fromNetwork(buffer);
+            Ingredient ingredient = Ingredient.fromPacket(buffer);
             FocalRange focalRange = FocalRange.fromNetwork(buffer);
             lenses.put(ingredient, focalRange);
         }
@@ -48,7 +48,7 @@ public record SyncLensesS2CP(ConcurrentMap<Ingredient, FocalRange> lenses) imple
     }
 
     @Override
-    public boolean handle(PacketDirection direction, @Nullable Player player) {
+    public boolean handle(PacketDirection direction, @Nullable PlayerEntity player) {
         ClientPacketsHandler.syncLenses(this);
         return true;
     }

@@ -1,9 +1,9 @@
 package io.github.mortuusars.exposure.item;
 
 import io.github.mortuusars.exposure.camera.infrastructure.FilmType;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
 
 public interface IFilmItem {
     FilmType getType();
@@ -12,26 +12,26 @@ public interface IFilmItem {
     }
 
     default int getMaxFrameCount(ItemStack filmStack) {
-        if (filmStack.getTag() != null && filmStack.getOrCreateTag().contains("FrameCount", Tag.TAG_INT))
-            return filmStack.getOrCreateTag().getInt("FrameCount");
+        if (filmStack.getNbt() != null && filmStack.getOrCreateNbt().contains("FrameCount", NbtElement.INT_TYPE))
+            return filmStack.getOrCreateNbt().getInt("FrameCount");
         else
             return getDefaultMaxFrameCount(filmStack);
     }
 
     default boolean hasExposedFrame(ItemStack filmStack, int index) {
-        if (index < 0 || filmStack.getTag() == null || !filmStack.getTag().contains("Frames", Tag.TAG_LIST))
+        if (index < 0 || filmStack.getNbt() == null || !filmStack.getNbt().contains("Frames", NbtElement.LIST_TYPE))
             return false;
 
-        ListTag list = filmStack.getTag().getList("Frames", Tag.TAG_COMPOUND);
+        NbtList list = filmStack.getNbt().getList("Frames", NbtElement.COMPOUND_TYPE);
         return index < list.size();
     }
 
     default int getExposedFramesCount(ItemStack stack) {
-        return stack.hasTag() && stack.getOrCreateTag().contains("Frames", Tag.TAG_LIST) ?
-                stack.getOrCreateTag().getList("Frames", Tag.TAG_COMPOUND).size() : 0;
+        return stack.hasNbt() && stack.getOrCreateNbt().contains("Frames", NbtElement.LIST_TYPE) ?
+                stack.getOrCreateNbt().getList("Frames", NbtElement.COMPOUND_TYPE).size() : 0;
     }
 
-    default ListTag getExposedFrames(ItemStack filmStack) {
-        return filmStack.getTag() != null ? filmStack.getTag().getList("Frames", Tag.TAG_COMPOUND) : new ListTag();
+    default NbtList getExposedFrames(ItemStack filmStack) {
+        return filmStack.getNbt() != null ? filmStack.getNbt().getList("Frames", NbtElement.COMPOUND_TYPE) : new NbtList();
     }
 }

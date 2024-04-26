@@ -4,41 +4,41 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.sound.OnePerPlayerSounds;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.core.NonNullList;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.world.World;
 
-public class CameraAttachmentsMenu extends AbstractContainerMenu {
+public class CameraAttachmentsMenu extends ScreenHandler {
     private final int attachmentSlots;
-    private final Player player;
-    private final Level level;
+    private final PlayerEntity player;
+    private final World level;
     private final ItemAndStack<CameraItem> camera;
 
     private boolean contentsInitialized;
 
-    public CameraAttachmentsMenu(int containerId, Inventory playerInventory, ItemStack cameraStack) {
+    public CameraAttachmentsMenu(int containerId, PlayerInventory playerInventory, ItemStack cameraStack) {
         super(Exposure.MenuTypes.CAMERA.get(), containerId);
         player = playerInventory.player;
-        level = playerInventory.player.level();
+        level = playerInventory.player.getWorld();
         camera = new ItemAndStack<>(cameraStack);
         List<CameraItem.AttachmentType> attachmentTypes = camera.getItem().getAttachmentTypes(camera.getStack());
 
-        SimpleContainer container = new SimpleContainer(getCameraAttachments(camera).toArray(ItemStack[]::new)) {
+        SimpleInventory container = new SimpleInventory(getCameraAttachments(camera).toArray(ItemStack[]::new)) {
             @Override
-            public int getMaxStackSize() {
+            public int getMaxCountPerStack() {
                 return 1;
             }
         };
@@ -49,13 +49,13 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
     }
 
     @Override
-    public void initializeContents(int stateId, List<ItemStack> items, ItemStack carried) {
+    public void updateSlotStacks(int stateId, List<ItemStack> items, ItemStack carried) {
         contentsInitialized = false;
-        super.initializeContents(stateId, items, carried);
+        super.updateSlotStacks(stateId, items, carried);
         contentsInitialized = true;
     }
 
-    protected int addSlotsForAttachments(Container container) {
+    protected int addSlotsForAttachments(Inventory container) {
         int attachmentSlots = 0;
 
         int[][] slots = new int[][]{
@@ -80,7 +80,7 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
         return attachmentSlots;
     }
 
-    protected void addPlayerSlots(Inventory playerInventory) {
+    protected void addPlayerSlots(PlayerInventory playerInventory) {
         //Player Inventory
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
@@ -93,15 +93,15 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
             int finalSlot = slot;
             addSlot(new Slot(playerInventory, finalSlot, slot * 18 + 8, 161) {
                 @Override
-                public boolean mayPickup(@NotNull Player player) {
-                    return super.mayPickup(player) && player.getInventory().selected != finalSlot;
+                public boolean canTakeItems(@NotNull PlayerEntity player) {
+                    return super.canTakeItems(player) && player.getInventory().selectedSlot != finalSlot;
                 }
             });
         }
     }
 
     protected void onItemInSlotChanged(FilteredSlot.SlotChangedArgs args) {
-        if (!level.isClientSide) {
+        if (!level.isClient) {
             camera.getItem().getAttachmentTypeForSlot(camera.getStack(), args.slot().getSlotId())
                     .ifPresent(attachmentType -> camera.getItem()
                             .setAttachment(camera.getStack(), attachmentType, args.newStack()));
@@ -117,25 +117,25 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
 
         if (slotId == CameraItem.FILM_ATTACHMENT.slot()) {
             if (!newStack.isEmpty())
-                OnePerPlayerSounds.play(player, Exposure.SoundEvents.FILM_ADVANCE.get(), SoundSource.PLAYERS, 0.9f, 1f);
+                OnePerPlayerSounds.play(player, Exposure.SoundEvents.FILM_ADVANCE.get(), SoundCategory.PLAYERS, 0.9f, 1f);
         } else if (slotId == CameraItem.FLASH_ATTACHMENT.slot()) {
             if (!newStack.isEmpty())
-                OnePerPlayerSounds.play(player, Exposure.SoundEvents.CAMERA_BUTTON_CLICK.get(), SoundSource.PLAYERS, 0.8f, 1f);
+                OnePerPlayerSounds.play(player, Exposure.SoundEvents.CAMERA_BUTTON_CLICK.get(), SoundCategory.PLAYERS, 0.8f, 1f);
         } else if (slotId == CameraItem.LENS_ATTACHMENT.slot()) {
-            if (!oldStack.is(newStack.getItem())) {
+            if (!oldStack.isOf(newStack.getItem())) {
                 OnePerPlayerSounds.play(player, newStack.isEmpty() ?
-                        SoundEvents.SPYGLASS_STOP_USING : SoundEvents.SPYGLASS_USE, SoundSource.PLAYERS, 0.9f, 1f);
+                        SoundEvents.ITEM_SPYGLASS_STOP_USING : SoundEvents.ITEM_SPYGLASS_USE, SoundCategory.PLAYERS, 0.9f, 1f);
             }
         } else if (slotId == CameraItem.FILTER_ATTACHMENT.slot()) {
-            if (!newStack.isEmpty() && !oldStack.is(newStack.getItem())) {
-                OnePerPlayerSounds.play(player, Exposure.SoundEvents.FILTER_PLACE.get(), SoundSource.PLAYERS, 0.8f,
+            if (!newStack.isEmpty() && !oldStack.isOf(newStack.getItem())) {
+                OnePerPlayerSounds.play(player, Exposure.SoundEvents.FILTER_PLACE.get(), SoundCategory.PLAYERS, 0.8f,
                         level.getRandom().nextFloat() * 0.2f + 0.9f);
             }
         }
     }
 
-    private static NonNullList<ItemStack> getCameraAttachments(ItemAndStack<CameraItem> camera) {
-        NonNullList<ItemStack> items = NonNullList.create();
+    private static DefaultedList<ItemStack> getCameraAttachments(ItemAndStack<CameraItem> camera) {
+        DefaultedList<ItemStack> items = DefaultedList.of();
 
         List<CameraItem.AttachmentType> attachmentTypes = camera.getItem().getAttachmentTypes(camera.getStack());
         for (CameraItem.AttachmentType attachmentType : attachmentTypes) {
@@ -146,24 +146,24 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
     }
 
     @Override
-    public @NotNull ItemStack quickMoveStack(@NotNull Player player, int slotIndex) {
+    public @NotNull ItemStack quickMove(@NotNull PlayerEntity player, int slotIndex) {
         ItemStack itemstack = ItemStack.EMPTY;
         Slot clickedSlot = this.slots.get(slotIndex);
-        if (clickedSlot.hasItem()) {
-            ItemStack slotStack = clickedSlot.getItem();
+        if (clickedSlot.hasStack()) {
+            ItemStack slotStack = clickedSlot.getStack();
             itemstack = slotStack.copy();
             if (slotIndex < attachmentSlots) {
-                if (!this.moveItemStackTo(slotStack, attachmentSlots, this.slots.size(), true))
+                if (!this.insertItem(slotStack, attachmentSlots, this.slots.size(), true))
                     return ItemStack.EMPTY;
             } else {
-                if (!this.moveItemStackTo(slotStack, 0, attachmentSlots, false))
+                if (!this.insertItem(slotStack, 0, attachmentSlots, false))
                     return ItemStack.EMPTY;
             }
 
             if (slotStack.isEmpty())
-                clickedSlot.set(ItemStack.EMPTY);
+                clickedSlot.setStackNoCallbacks(ItemStack.EMPTY);
             else
-                clickedSlot.setChanged();
+                clickedSlot.markDirty();
         }
 
         return itemstack;
@@ -173,7 +173,7 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
      * Fixed method to respect slot photo limit.
      */
     @Override
-    protected boolean moveItemStackTo(ItemStack movedStack, int startIndex, int endIndex, boolean reverseDirection) {
+    protected boolean insertItem(ItemStack movedStack, int startIndex, int endIndex, boolean reverseDirection) {
         boolean hasRemainder = false;
         int i = startIndex;
         if (reverseDirection) {
@@ -182,19 +182,19 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
         if (movedStack.isStackable()) {
             while (!movedStack.isEmpty() && !(!reverseDirection ? i >= endIndex : i < startIndex)) {
                 Slot slot = this.slots.get(i);
-                ItemStack slotStack = slot.getItem();
-                if (!slotStack.isEmpty() && ItemStack.isSameItemSameTags(movedStack, slotStack)) {
+                ItemStack slotStack = slot.getStack();
+                if (!slotStack.isEmpty() && ItemStack.canCombine(movedStack, slotStack)) {
                     int maxSize;
                     int j = slotStack.getCount() + movedStack.getCount();
-                    if (j <= (maxSize = Math.min(slot.getMaxStackSize(), movedStack.getMaxStackSize()))) {
+                    if (j <= (maxSize = Math.min(slot.getMaxItemCount(), movedStack.getMaxCount()))) {
                         movedStack.setCount(0);
                         slotStack.setCount(j);
-                        slot.setChanged();
+                        slot.markDirty();
                         hasRemainder = true;
                     } else if (slotStack.getCount() < maxSize) {
-                        movedStack.shrink(maxSize - slotStack.getCount());
+                        movedStack.decrement(maxSize - slotStack.getCount());
                         slotStack.setCount(maxSize);
-                        slot.setChanged();
+                        slot.markDirty();
                         hasRemainder = true;
                     }
                 }
@@ -209,14 +209,14 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
             i = reverseDirection ? endIndex - 1 : startIndex;
             while (!(!reverseDirection ? i >= endIndex : i < startIndex)) {
                 Slot slot1 = this.slots.get(i);
-                ItemStack movedStack1 = slot1.getItem();
-                if (movedStack1.isEmpty() && slot1.mayPlace(movedStack)) {
-                    if (movedStack.getCount() > slot1.getMaxStackSize()) {
-                        slot1.setByPlayer(movedStack.split(slot1.getMaxStackSize()));
+                ItemStack movedStack1 = slot1.getStack();
+                if (movedStack1.isEmpty() && slot1.canInsert(movedStack)) {
+                    if (movedStack.getCount() > slot1.getMaxItemCount()) {
+                        slot1.setStack(movedStack.split(slot1.getMaxItemCount()));
                     } else {
-                        slot1.setByPlayer(movedStack.split(movedStack.getCount()));
+                        slot1.setStack(movedStack.split(movedStack.getCount()));
                     }
-                    slot1.setChanged();
+                    slot1.markDirty();
                     hasRemainder = true;
                     break;
                 }
@@ -231,12 +231,12 @@ public class CameraAttachmentsMenu extends AbstractContainerMenu {
     }
 
     @Override
-    public boolean stillValid(@NotNull Player player) {
-        return player.getMainHandItem().getItem() instanceof CameraItem
-                || player.getOffhandItem().getItem() instanceof CameraItem;
+    public boolean canUse(@NotNull PlayerEntity player) {
+        return player.getMainHandStack().getItem() instanceof CameraItem
+                || player.getOffHandStack().getItem() instanceof CameraItem;
     }
 
-    public static CameraAttachmentsMenu fromBuffer(int containerId, Inventory playerInventory, FriendlyByteBuf buffer) {
-        return new CameraAttachmentsMenu(containerId, playerInventory, buffer.readItem());
+    public static CameraAttachmentsMenu fromBuffer(int containerId, PlayerInventory playerInventory, PacketByteBuf buffer) {
+        return new CameraAttachmentsMenu(containerId, playerInventory, buffer.readItemStack());
     }
 }

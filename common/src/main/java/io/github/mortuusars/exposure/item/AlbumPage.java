@@ -1,23 +1,23 @@
 package io.github.mortuusars.exposure.item;
 
 import com.mojang.datafixers.util.Either;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 
 public class AlbumPage {
     public static final String PHOTOGRAPH_TAG = "Photo";
     public static final String NOTE_TAG = "Note";
     public static final String NOTE_COMPONENT_TAG = "NoteComponent";
     private ItemStack photographStack;
-    private Either<String, Component> note;
+    private Either<String, Text> note;
 
-    public AlbumPage(ItemStack photographStack, Either<String, Component> note) {
+    public AlbumPage(ItemStack photographStack, Either<String, Text> note) {
         this.photographStack = photographStack;
         this.note = note;
     }
@@ -26,7 +26,7 @@ public class AlbumPage {
         return new AlbumPage(photographStack, Either.left(note));
     }
 
-    public static AlbumPage signed(ItemStack photographStack, Component note) {
+    public static AlbumPage signed(ItemStack photographStack, Text note) {
         return new AlbumPage(photographStack, Either.right(note));
     }
 
@@ -38,40 +38,40 @@ public class AlbumPage {
         return photographStack.isEmpty() && note.map(String::isEmpty, c -> c.getString().isEmpty());
     }
 
-    public static AlbumPage fromTag(CompoundTag tag, boolean editable) {
-        ItemStack photographStack = tag.contains(PHOTOGRAPH_TAG, Tag.TAG_COMPOUND)
-                ? ItemStack.of(tag.getCompound(PHOTOGRAPH_TAG)) : ItemStack.EMPTY;
+    public static AlbumPage fromTag(NbtCompound tag, boolean editable) {
+        ItemStack photographStack = tag.contains(PHOTOGRAPH_TAG, NbtElement.COMPOUND_TYPE)
+                ? ItemStack.fromNbt(tag.getCompound(PHOTOGRAPH_TAG)) : ItemStack.EMPTY;
 
         if (editable) {
             String note;
-            if (tag.contains(NOTE_TAG, Tag.TAG_STRING))
+            if (tag.contains(NOTE_TAG, NbtElement.STRING_TYPE))
                 note = tag.getString(NOTE_TAG);
             else if (tag.contains(NOTE_COMPONENT_TAG)) {
-                @Nullable MutableComponent component = Component.Serializer.fromJson(tag.getString(NOTE_COMPONENT_TAG));
-                note = component != null ? component.getString(512) : "";
+                @Nullable MutableText component = Text.Serializer.fromJson(tag.getString(NOTE_COMPONENT_TAG));
+                note = component != null ? component.asTruncatedString(512) : "";
             } else
                 note = "";
 
             return editable(photographStack, note);
         } else {
-            Component note;
-            if (tag.contains(NOTE_COMPONENT_TAG, Tag.TAG_STRING))
-                note = Component.Serializer.fromJson(tag.getString(NOTE_COMPONENT_TAG));
+            Text note;
+            if (tag.contains(NOTE_COMPONENT_TAG, NbtElement.STRING_TYPE))
+                note = Text.Serializer.fromJson(tag.getString(NOTE_COMPONENT_TAG));
             else if (tag.contains(NOTE_TAG))
-                note = Component.literal(tag.getString(NOTE_TAG));
+                note = Text.literal(tag.getString(NOTE_TAG));
             else
-                note = Component.empty();
+                note = Text.empty();
 
             return signed(photographStack, note);
         }
     }
 
-    public CompoundTag toTag(CompoundTag tag) {
+    public NbtCompound toTag(NbtCompound tag) {
         if (!photographStack.isEmpty())
-            tag.put(PHOTOGRAPH_TAG, photographStack.save(new CompoundTag()));
+            tag.put(PHOTOGRAPH_TAG, photographStack.writeNbt(new NbtCompound()));
 
         note.ifLeft(string -> { if (!string.isEmpty()) tag.putString(NOTE_TAG, string);})
-            .ifRight(component -> tag.putString(NOTE_COMPONENT_TAG, Component.Serializer.toJson(component)));
+            .ifRight(component -> tag.putString(NOTE_COMPONENT_TAG, Text.Serializer.toJson(component)));
 
         return tag;
     }
@@ -86,11 +86,11 @@ public class AlbumPage {
         return existingStack;
     }
 
-    public Either<String, Component> getNote() {
+    public Either<String, Text> getNote() {
         return note;
     }
 
-    public void setNote(Either<String, Component> note) {
+    public void setNote(Either<String, Text> note) {
         this.note = note;
     }
 
@@ -98,7 +98,7 @@ public class AlbumPage {
         if (!isEditable())
             return this;
 
-        MutableComponent noteComponent = Component.literal(getNote().left().orElseThrow());
+        MutableText noteComponent = Text.literal(getNote().left().orElseThrow());
         return signed(getPhotographStack(), noteComponent);
     }
 

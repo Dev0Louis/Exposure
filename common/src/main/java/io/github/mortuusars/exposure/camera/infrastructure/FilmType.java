@@ -1,17 +1,17 @@
 package io.github.mortuusars.exposure.camera.infrastructure;
 
 import io.github.mortuusars.exposure.Exposure;
-import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.StringIdentifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public enum FilmType implements StringRepresentable {
+public enum FilmType implements StringIdentifiable {
     BLACK_AND_WHITE("black_and_white", 255, 255, 255, 1.0F, 1.0F, 1.0F, 1.0F),
     COLOR("color", 180, 130, 110, 1.2F, 0.96F, 0.75F, 1.0F);
 
     @SuppressWarnings("deprecation")
-    public static final StringRepresentable.EnumCodec<FilmType> CODEC = StringRepresentable.fromEnum(FilmType::values);
+    public static final StringIdentifiable.Codec<FilmType> CODEC = StringIdentifiable.createCodec(FilmType::values);
 
     private final String name;
     public final int frameR, frameG, frameB;
@@ -30,7 +30,7 @@ public enum FilmType implements StringRepresentable {
     }
 
     @Override
-    public @NotNull String getSerializedName() {
+    public @NotNull String asString() {
         return name;
     }
 
@@ -39,7 +39,7 @@ public enum FilmType implements StringRepresentable {
      */
     @Nullable
     public static FilmType byName(@Nullable String name) {
-        return CODEC.byName(name);
+        return CODEC.byId(name);
     }
 
     public ItemStack createItemStack() {

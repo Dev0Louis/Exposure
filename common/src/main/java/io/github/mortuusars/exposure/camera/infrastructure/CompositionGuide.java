@@ -1,8 +1,8 @@
 package io.github.mortuusars.exposure.camera.infrastructure;
 
 import io.github.mortuusars.exposure.Exposure;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.text.Text;
 
 @SuppressWarnings("ClassCanBeRecord")
 public class CompositionGuide {
@@ -16,15 +16,15 @@ public class CompositionGuide {
         return id;
     }
 
-    public Component translate() {
-        return Component.translatable("gui." + Exposure.ID + ".composition_guide." + id);
+    public Text translate() {
+        return Text.translatable("gui." + Exposure.ID + ".composition_guide." + id);
     }
 
-    public void toBuffer(FriendlyByteBuf buffer) {
-        buffer.writeUtf(id);
+    public void toBuffer(PacketByteBuf buffer) {
+        buffer.writeString(id);
     }
 
-    public static CompositionGuide fromBuffer(FriendlyByteBuf buffer) {
-        return CompositionGuides.byIdOrNone(buffer.readUtf());
+    public static CompositionGuide fromBuffer(PacketByteBuf buffer) {
+        return CompositionGuides.byIdOrNone(buffer.readString());
     }
 }

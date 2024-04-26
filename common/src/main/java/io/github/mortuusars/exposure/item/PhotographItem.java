@@ -11,79 +11,79 @@ import io.github.mortuusars.exposure.entity.PhotographEntity;
 import io.github.mortuusars.exposure.gui.ClientGUI;
 import io.github.mortuusars.exposure.gui.component.PhotographTooltip;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.StringUtil;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.SlotAccess;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.ClickAction;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.client.item.TooltipContext;
+import net.minecraft.client.item.TooltipData;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.StackReference;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.ClickType;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.StringHelper;
+import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.world.World;
+import net.minecraft.world.event.GameEvent;
 
 public class PhotographItem extends Item {
-    public PhotographItem(Properties properties) {
+    public PhotographItem(Settings properties) {
         super(properties);
     }
 
-    public @Nullable Either<String, ResourceLocation> getIdOrTexture(ItemStack stack) {
-        if (stack.getTag() == null)
+    public @Nullable Either<String, Identifier> getIdOrTexture(ItemStack stack) {
+        if (stack.getNbt() == null)
             return null;
 
-        String id = stack.getTag().getString(FrameData.ID);
+        String id = stack.getNbt().getString(FrameData.ID);
         if (!id.isEmpty())
             return Either.left(id);
 
-        String resource = stack.getTag().getString(FrameData.TEXTURE);
+        String resource = stack.getNbt().getString(FrameData.TEXTURE);
         if (!resource.isEmpty())
-            return Either.right(new ResourceLocation(resource));
+            return Either.right(new Identifier(resource));
 
         return null;
     }
 
     public void setId(ItemStack stack, @NotNull String id) {
-        Preconditions.checkState(!StringUtil.isNullOrEmpty(id), "'id' cannot be null or empty.");
-        stack.getOrCreateTag().putString(FrameData.ID, id);
+        Preconditions.checkState(!StringHelper.isEmpty(id), "'id' cannot be null or empty.");
+        stack.getOrCreateNbt().putString(FrameData.ID, id);
     }
 
-    public void setTexture(ItemStack stack, @NotNull ResourceLocation resourceLocation) {
-        stack.getOrCreateTag().putString(FrameData.TEXTURE, resourceLocation.toString());
+    public void setTexture(ItemStack stack, @NotNull Identifier resourceLocation) {
+        stack.getOrCreateNbt().putString(FrameData.TEXTURE, resourceLocation.toString());
     }
 
     @Override
-    public @NotNull Optional<TooltipComponent> getTooltipImage(@NotNull ItemStack stack) {
+    public @NotNull Optional<TooltipData> getTooltipData(@NotNull ItemStack stack) {
         return getIdOrTexture(stack) != null ? Optional.of(new PhotographTooltip(stack)) : Optional.empty();
     }
 
     @Override
-    public void appendHoverText(@NotNull ItemStack stack, @Nullable Level level, @NotNull List<Component> tooltipComponents, @NotNull TooltipFlag isAdvanced) {
-        if (stack.getTag() != null) {
-            int generation = stack.getTag().getInt("generation");
+    public void appendTooltip(@NotNull ItemStack stack, @Nullable World level, @NotNull List<Text> tooltipComponents, @NotNull TooltipContext isAdvanced) {
+        if (stack.getNbt() != null) {
+            int generation = stack.getNbt().getInt("generation");
             if (generation > 0)
-                tooltipComponents.add(Component.translatable("item.exposure.photograph.generation." + generation)
-                        .withStyle(ChatFormatting.GRAY));
+                tooltipComponents.add(Text.translatable("item.exposure.photograph.generation." + generation)
+                        .formatted(Formatting.GRAY));
 
-            String photographerName = stack.getTag().getString(FrameData.PHOTOGRAPHER);
+            String photographerName = stack.getNbt().getString(FrameData.PHOTOGRAPHER);
             if (!photographerName.isEmpty() && Config.Client.PHOTOGRAPH_SHOW_PHOTOGRAPHER_IN_TOOLTIP.get()) {
-                tooltipComponents.add(Component.translatable("item.exposure.photograph.photographer_tooltip",
-                                Component.literal(photographerName).withStyle(ChatFormatting.WHITE))
-                        .withStyle(ChatFormatting.GRAY));
+                tooltipComponents.add(Text.translatable("item.exposure.photograph.photographer_tooltip",
+                                Text.literal(photographerName).formatted(Formatting.WHITE))
+                        .formatted(Formatting.GRAY));
             }
 
             // The value is not constant here
@@ -93,60 +93,60 @@ public class PhotographItem extends Item {
             }
 
             if (isAdvanced.isAdvanced()) {
-                @Nullable Either<String, ResourceLocation> idOrTexture = getIdOrTexture(stack);
+                @Nullable Either<String, Identifier> idOrTexture = getIdOrTexture(stack);
                 if (idOrTexture != null) {
                     String text = idOrTexture.map(id -> "Exposure Id: " + id, texture -> "Texture: " + texture);
-                    tooltipComponents.add(Component.literal(text).withStyle(ChatFormatting.DARK_GRAY));
+                    tooltipComponents.add(Text.literal(text).formatted(Formatting.DARK_GRAY));
                 }
             }
         }
     }
 
     @Override
-    public @NotNull InteractionResult useOn(UseOnContext context) {
-        BlockPos clickedPos = context.getClickedPos();
-        Direction direction = context.getClickedFace();
-        BlockPos resultPos = clickedPos.relative(direction);
-        Player player = context.getPlayer();
-        ItemStack itemStack = context.getItemInHand();
-        if (player == null || player.level().isOutsideBuildHeight(resultPos) || !player.mayUseItemAt(resultPos, direction, itemStack))
-            return InteractionResult.FAIL;
+    public @NotNull ActionResult useOnBlock(ItemUsageContext context) {
+        BlockPos clickedPos = context.getBlockPos();
+        Direction direction = context.getSide();
+        BlockPos resultPos = clickedPos.offset(direction);
+        PlayerEntity player = context.getPlayer();
+        ItemStack itemStack = context.getStack();
+        if (player == null || player.getWorld().isOutOfHeightLimit(resultPos) || !player.canPlaceOn(resultPos, direction, itemStack))
+            return ActionResult.FAIL;
 
-        Level level = context.getLevel();
+        World level = context.getWorld();
         PhotographEntity photographEntity = new PhotographEntity(level, resultPos, direction, itemStack.copy());
 
-        if (photographEntity.survives()) {
-            if (!level.isClientSide) {
-                photographEntity.playPlacementSound();
-                level.gameEvent(player, GameEvent.ENTITY_PLACE, photographEntity.position());
-                level.addFreshEntity(photographEntity);
+        if (photographEntity.canStayAttached()) {
+            if (!level.isClient) {
+                photographEntity.onPlace();
+                level.emitGameEvent(player, GameEvent.ENTITY_PLACE, photographEntity.getPos());
+                level.spawnEntity(photographEntity);
             }
 
-            itemStack.shrink(1);
-            return InteractionResult.sidedSuccess(level.isClientSide);
+            itemStack.decrement(1);
+            return ActionResult.success(level.isClient);
         }
 
-        return InteractionResult.FAIL;
+        return ActionResult.FAIL;
     }
 
     @Override
-    public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, Player player, @NotNull InteractionHand hand) {
-        ItemStack itemInHand = player.getItemInHand(hand);
+    public @NotNull TypedActionResult<ItemStack> use(@NotNull World level, PlayerEntity player, @NotNull Hand hand) {
+        ItemStack itemInHand = player.getStackInHand(hand);
 
         if (getIdOrTexture(itemInHand) == null)
             LogUtils.getLogger().warn("No Id or Texture is defined. - " + itemInHand);
 
-        if (level.isClientSide) {
+        if (level.isClient) {
             ClientGUI.openPhotographScreen(List.of(new ItemAndStack<>(itemInHand)));
             player.playSound(Exposure.SoundEvents.PHOTOGRAPH_RUSTLE.get(), 0.6f, 1.1f);
         }
 
-        return InteractionResultHolder.success(itemInHand);
+        return TypedActionResult.success(itemInHand);
     }
 
     @Override
-    public boolean overrideOtherStackedOnMe(@NotNull ItemStack stack, @NotNull ItemStack other, @NotNull Slot slot, @NotNull ClickAction action, @NotNull Player player, @NotNull SlotAccess access) {
-        if (action != ClickAction.SECONDARY)
+    public boolean onClicked(@NotNull ItemStack stack, @NotNull ItemStack other, @NotNull Slot slot, @NotNull ClickType action, @NotNull PlayerEntity player, @NotNull StackReference access) {
+        if (action != ClickType.RIGHT)
             return false;
 
         if (other.getItem() instanceof PhotographItem) {
@@ -155,7 +155,7 @@ public class PhotographItem extends Item {
 
             stackedPhotographsItem.addPhotographOnTop(stackedPhotographsStack, stack);
             stackedPhotographsItem.addPhotographOnTop(stackedPhotographsStack, other);
-            slot.set(ItemStack.EMPTY);
+            slot.setStackNoCallbacks(ItemStack.EMPTY);
             access.set(stackedPhotographsStack);
 
             StackedPhotographsItem.playAddSoundClientside(player);

@@ -1,17 +1,9 @@
 package io.github.mortuusars.exposure.render;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.datafixers.util.Either;
 import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.ExposureClient;
 import io.github.mortuusars.exposure.render.modifiers.IPixelModifier;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -21,6 +13,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.texture.NativeImageBackedTexture;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.Identifier;
 
 public class ExposureRenderer implements AutoCloseable {
     private final Map<String, ExposureInstance> cache = new HashMap<>();
@@ -29,31 +29,31 @@ public class ExposureRenderer implements AutoCloseable {
         return 256;
     }
 
-    public void render(@NotNull Either<String, ResourceLocation> idOrTexture, IPixelModifier modifier, PoseStack poseStack, MultiBufferSource bufferSource) {
+    public void render(@NotNull Either<String, Identifier> idOrTexture, IPixelModifier modifier, MatrixStack poseStack, VertexConsumerProvider bufferSource) {
         render(idOrTexture, modifier, poseStack, bufferSource, 0, 0, getSize(), getSize());
     }
 
-    public void render(@NotNull Either<String, ResourceLocation> idOrTexture, IPixelModifier modifier,
-                       PoseStack poseStack, MultiBufferSource bufferSource, float x, float y, float width, float height) {
+    public void render(@NotNull Either<String, Identifier> idOrTexture, IPixelModifier modifier,
+                       MatrixStack poseStack, VertexConsumerProvider bufferSource, float x, float y, float width, float height) {
         render(idOrTexture, modifier, poseStack, bufferSource, x, y, x + width, y + height,
-                0, 0, 1, 1, LightTexture.FULL_BRIGHT, 255, 255, 255, 255);
+                0, 0, 1, 1, LightmapTextureManager.MAX_LIGHT_COORDINATE, 255, 255, 255, 255);
     }
 
-    public void render(@NotNull Either<String, ResourceLocation> idOrTexture, IPixelModifier modifier,
-                       PoseStack poseStack, MultiBufferSource bufferSource,
+    public void render(@NotNull Either<String, Identifier> idOrTexture, IPixelModifier modifier,
+                       MatrixStack poseStack, VertexConsumerProvider bufferSource,
                        int packedLight, int r, int g, int b, int a) {
         render(idOrTexture, modifier, poseStack, bufferSource, 0, 0, getSize(), getSize(), packedLight, r, g, b, a);
     }
 
-    public void render(@NotNull Either<String, ResourceLocation> idOrTexture, IPixelModifier modifier,
-                       PoseStack poseStack, MultiBufferSource bufferSource, float x, float y, float width, float height,
+    public void render(@NotNull Either<String, Identifier> idOrTexture, IPixelModifier modifier,
+                       MatrixStack poseStack, VertexConsumerProvider bufferSource, float x, float y, float width, float height,
                        int packedLight, int r, int g, int b, int a) {
         render(idOrTexture, modifier, poseStack, bufferSource, x, y, x + width, y + height,
                 0, 0, 1, 1, packedLight, r, g, b, a);
     }
 
-    public void render(@NotNull Either<String, ResourceLocation> idOrTexture, IPixelModifier modifier,
-                       PoseStack poseStack, MultiBufferSource bufferSource, float minX, float minY, float maxX, float maxY,
+    public void render(@NotNull Either<String, Identifier> idOrTexture, IPixelModifier modifier,
+                       MatrixStack poseStack, VertexConsumerProvider bufferSource, float minX, float minY, float maxX, float maxY,
                        float minU, float minV, float maxU, float maxV, int packedLight, int r, int g, int b, int a) {
         @Nullable ExposureImage exposure = idOrTexture.map(
                 id -> ExposureClient.getExposureStorage().getOrQuery(id)
@@ -69,7 +69,7 @@ public class ExposureRenderer implements AutoCloseable {
         );
 
         if (exposure != null) {
-            String id = idOrTexture.map(expId -> expId, ResourceLocation::toString);
+            String id = idOrTexture.map(expId -> expId, Identifier::toString);
             getOrCreateExposureInstance(id, exposure, modifier)
                     .draw(poseStack, bufferSource, minX, minY, maxX, maxY, minU, minV, maxU, maxV, packedLight, r, g, b, a);
         }
@@ -115,20 +115,20 @@ public class ExposureRenderer implements AutoCloseable {
     }
 
     static class ExposureInstance implements AutoCloseable {
-        private final RenderType renderType;
+        private final RenderLayer renderType;
 
         private ExposureImage exposure;
-        private DynamicTexture texture;
+        private NativeImageBackedTexture texture;
         private final IPixelModifier pixelModifier;
         private boolean requiresUpload = true;
 
         ExposureInstance(String id, ExposureImage exposure, IPixelModifier modifier) {
             this.exposure = exposure;
-            this.texture = new DynamicTexture(exposure.getWidth(), exposure.getHeight(), true);
+            this.texture = new NativeImageBackedTexture(exposure.getWidth(), exposure.getHeight(), true);
             this.pixelModifier = modifier;
             String textureId = createTextureId(id);
-            ResourceLocation resourcelocation = Minecraft.getInstance().getTextureManager().register(textureId, this.texture);
-            this.renderType = RenderType.text(resourcelocation);
+            Identifier resourcelocation = MinecraftClient.getInstance().getTextureManager().registerDynamicTexture(textureId, this.texture);
+            this.renderType = RenderLayer.getText(resourcelocation);
         }
 
         private static String createTextureId(String exposureId) {
@@ -154,7 +154,7 @@ public class ExposureRenderer implements AutoCloseable {
             boolean hasChanged = !this.exposure.getName().equals(exposure.getName());
             this.exposure = exposure;
             if (hasChanged) {
-                this.texture = new DynamicTexture(exposure.getWidth(), exposure.getHeight(), true);
+                this.texture = new NativeImageBackedTexture(exposure.getWidth(), exposure.getHeight(), true);
             }
             this.requiresUpload |= hasChanged;
         }
@@ -165,33 +165,33 @@ public class ExposureRenderer implements AutoCloseable {
         }
 
         private void updateTexture() {
-            if (texture.getPixels() == null)
+            if (texture.getImage() == null)
                 return;
 
             for (int y = 0; y < this.exposure.getHeight(); y++) {
                 for (int x = 0; x < this.exposure.getWidth(); x++) {
                     int ABGR = this.exposure.getPixelABGR(x, y);
                     ABGR = pixelModifier.modifyPixel(ABGR);
-                    this.texture.getPixels().setPixelRGBA(x, y, ABGR); // Texture is in BGR format
+                    this.texture.getImage().setColor(x, y, ABGR); // Texture is in BGR format
                 }
             }
 
             this.texture.upload();
         }
 
-        void draw(PoseStack poseStack, MultiBufferSource bufferSource, float minX, float minY, float maxX, float maxY,
+        void draw(MatrixStack poseStack, VertexConsumerProvider bufferSource, float minX, float minY, float maxX, float maxY,
                   float minU, float minV, float maxU, float maxV, int packedLight, int r, int g, int b, int a) {
             if (this.requiresUpload) {
                 this.updateTexture();
                 this.requiresUpload = false;
             }
 
-            Matrix4f matrix4f = poseStack.last().pose();
+            Matrix4f matrix4f = poseStack.peek().getPositionMatrix();
             VertexConsumer vertexconsumer = bufferSource.getBuffer(this.renderType);
-            vertexconsumer.vertex(matrix4f, minX, maxY, 0).color(r, g, b, a).uv(minU, maxV).uv2(packedLight).endVertex();
-            vertexconsumer.vertex(matrix4f, maxX, maxY, 0).color(r, g, b, a).uv(maxU, maxV).uv2(packedLight).endVertex();
-            vertexconsumer.vertex(matrix4f, maxX, minY, 0).color(r, g, b, a).uv(maxU, minV).uv2(packedLight).endVertex();
-            vertexconsumer.vertex(matrix4f, minX, minY, 0).color(r, g, b, a).uv(minU, minV).uv2(packedLight).endVertex();
+            vertexconsumer.vertex(matrix4f, minX, maxY, 0).color(r, g, b, a).texture(minU, maxV).light(packedLight).next();
+            vertexconsumer.vertex(matrix4f, maxX, maxY, 0).color(r, g, b, a).texture(maxU, maxV).light(packedLight).next();
+            vertexconsumer.vertex(matrix4f, maxX, minY, 0).color(r, g, b, a).texture(maxU, minV).light(packedLight).next();
+            vertexconsumer.vertex(matrix4f, minX, minY, 0).color(r, g, b, a).texture(minU, minV).light(packedLight).next();
         }
 
         public void close() {

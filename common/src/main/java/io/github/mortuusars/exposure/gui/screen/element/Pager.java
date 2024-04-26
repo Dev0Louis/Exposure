@@ -1,14 +1,14 @@
 package io.github.mortuusars.exposure.gui.screen.element;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import io.github.mortuusars.exposure.util.PagingDirection;
-import net.minecraft.Util;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.AbstractButton;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.util.Mth;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.widget.PressableWidget;
+import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
+import net.minecraft.util.math.MathHelper;
 
 @SuppressWarnings({"UnusedReturnValue", "BooleanMethodIsAlwaysInverted"})
 public class Pager {
@@ -17,18 +17,18 @@ public class Pager {
     public boolean playSound = true;
     public SoundEvent changeSoundEvent;
 
-    protected ResourceLocation texture;
+    protected Identifier texture;
     protected int pages;
     protected boolean cycled;
     protected int currentPage;
-    protected AbstractButton previousButton;
-    protected AbstractButton nextButton;
+    protected PressableWidget previousButton;
+    protected PressableWidget nextButton;
 
     public Pager(SoundEvent changeSoundEvent) {
         this.changeSoundEvent = changeSoundEvent;
     }
 
-    public void init(int pages, boolean cycled, AbstractButton previousPageButton, AbstractButton nextPageButton) {
+    public void init(int pages, boolean cycled, PressableWidget previousPageButton, PressableWidget nextPageButton) {
         this.pages = pages;
         this.cycled = cycled;
         setPage(getCurrentPage());
@@ -43,7 +43,7 @@ public class Pager {
     }
 
     public void setPage(int value) {
-        this.currentPage = Mth.clamp(value, 0, this.pages);
+        this.currentPage = MathHelper.clamp(value, 0, this.pages);
     }
 
     public void update() {
@@ -52,12 +52,12 @@ public class Pager {
     }
 
     public boolean handleKeyPressed(int keyCode, int scanCode, int modifiers) {
-        if (Minecraft.getInstance().options.keyLeft.matches(keyCode, scanCode) || keyCode == InputConstants.KEY_LEFT) {
+        if (MinecraftClient.getInstance().options.leftKey.matchesKey(keyCode, scanCode) || keyCode == InputUtil.GLFW_KEY_LEFT) {
             if (!isOnCooldown())
                 changePage(PagingDirection.PREVIOUS);
             return true;
         }
-        else if (Minecraft.getInstance().options.keyRight.matches(keyCode, scanCode) || keyCode == InputConstants.KEY_RIGHT) {
+        else if (MinecraftClient.getInstance().options.rightKey.matchesKey(keyCode, scanCode) || keyCode == InputUtil.GLFW_KEY_RIGHT) {
             if (!isOnCooldown())
                 changePage(PagingDirection.NEXT);
             return true;
@@ -67,8 +67,8 @@ public class Pager {
     }
 
     public boolean handleKeyReleased(int keyCode, int scanCode, int modifiers) {
-        if (Minecraft.getInstance().options.keyRight.matches(keyCode, scanCode) || keyCode == InputConstants.KEY_RIGHT
-                || Minecraft.getInstance().options.keyLeft.matches(keyCode, scanCode) || keyCode == InputConstants.KEY_LEFT) {
+        if (MinecraftClient.getInstance().options.rightKey.matchesKey(keyCode, scanCode) || keyCode == InputUtil.GLFW_KEY_RIGHT
+                || MinecraftClient.getInstance().options.leftKey.matchesKey(keyCode, scanCode) || keyCode == InputUtil.GLFW_KEY_LEFT) {
             lastChangedAt = 0;
             return true;
         }
@@ -77,7 +77,7 @@ public class Pager {
     }
 
     private boolean isOnCooldown() {
-        return Util.getMillis() - lastChangedAt < changeCooldownMS;
+        return Util.getMeasuringTimeMs() - lastChangedAt < changeCooldownMS;
     }
 
     public boolean canChangePage(PagingDirection direction) {
@@ -106,13 +106,13 @@ public class Pager {
     }
 
     public void onPageChanged(PagingDirection pagingDirection, int prevPage, int currentPage) {
-        lastChangedAt = Util.getMillis();
+        lastChangedAt = Util.getMeasuringTimeMs();
         if (playSound)
             playChangeSound();
     }
 
     protected void playChangeSound() {
-        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(
+        MinecraftClient.getInstance().getSoundManager().play(PositionedSoundInstance.master(
                 getChangeSound(), 0.8f, 1f));
     }
 

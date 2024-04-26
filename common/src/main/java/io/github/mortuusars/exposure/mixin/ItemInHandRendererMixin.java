@@ -1,18 +1,18 @@
 package io.github.mortuusars.exposure.mixin;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import io.github.mortuusars.exposure.camera.viewfinder.ViewfinderClient;
 import io.github.mortuusars.exposure.render.PhotographInHandRenderer;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.item.HeldItemRenderer;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.Arm;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RotationAxis;
 import io.github.mortuusars.exposure.item.PhotographItem;
 import io.github.mortuusars.exposure.item.StackedPhotographsItem;
-import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.ItemInHandRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.util.Mth;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -21,88 +21,88 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
-@Mixin(ItemInHandRenderer.class)
+@Mixin(HeldItemRenderer.class)
 public abstract class ItemInHandRendererMixin {
     @Shadow
-    private ItemStack mainHandItem;
+    private ItemStack mainHand;
     @Shadow
-    private ItemStack offHandItem;
+    private ItemStack offHand;
     @Shadow
-    protected abstract void renderPlayerArm(PoseStack pMatrixStack, MultiBufferSource pBuffer, int pCombinedLight, float pEquippedProgress, float pSwingProgress, HumanoidArm pSide);
+    protected abstract void renderArmHoldingItem(MatrixStack pMatrixStack, VertexConsumerProvider pBuffer, int pCombinedLight, float pEquippedProgress, float pSwingProgress, Arm pSide);
     @Shadow
-    protected abstract float calculateMapTilt(float pPitch);
+    protected abstract float getMapAngle(float pPitch);
     @Shadow
-    protected abstract void renderMapHand(PoseStack pMatrixStack, MultiBufferSource pBuffer, int pCombinedLight, HumanoidArm pSide);
+    protected abstract void renderArm(MatrixStack pMatrixStack, VertexConsumerProvider pBuffer, int pCombinedLight, Arm pSide);
 
-    @Inject(method = "renderArmWithItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;isEmpty()Z", ordinal = 0),
+    @Inject(method = "renderFirstPersonItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isEmpty()Z", ordinal = 0),
             locals = LocalCapture.CAPTURE_FAILHARD, cancellable = true)
-    private void renderPhotograph(AbstractClientPlayer player, float partialTicks, float pitch, InteractionHand hand,
-                                  float swingProgress, ItemStack stack, float equipProgress, PoseStack poseStack,
-                                  MultiBufferSource buffer, int combinedLight, CallbackInfo ci, boolean isMainHand, HumanoidArm arm) {
+    private void renderPhotograph(AbstractClientPlayerEntity player, float partialTicks, float pitch, Hand hand,
+                                  float swingProgress, ItemStack stack, float equipProgress, MatrixStack poseStack,
+                                  VertexConsumerProvider buffer, int combinedLight, CallbackInfo ci, boolean isMainHand, Arm arm) {
         if (ViewfinderClient.isLookingThrough()) {
-            poseStack.popPose();
+            poseStack.pop();
             ci.cancel();
             return;
         }
 
         if (stack.getItem() instanceof PhotographItem || stack.getItem() instanceof StackedPhotographsItem) {
-            if (isMainHand && this.offHandItem.isEmpty()) {
+            if (isMainHand && this.offHand.isEmpty()) {
                 exposure$renderTwoHandedPhotograph(player, poseStack, buffer, combinedLight, pitch, equipProgress, swingProgress);
             } else {
                 exposure$renderOneHandedPhotograph(player, poseStack, buffer, combinedLight, equipProgress, arm, swingProgress, stack);
             }
 
-            poseStack.popPose();
+            poseStack.pop();
 
             ci.cancel();
         }
     }
 
     @Unique
-    private void exposure$renderOneHandedPhotograph(AbstractClientPlayer player, PoseStack poseStack, MultiBufferSource buffer, int combinedLight, float pEquippedProgress, HumanoidArm pHand, float pSwingProgress, ItemStack stack) {
-        float f = pHand == HumanoidArm.RIGHT ? 1.0F : -1.0F;
-        poseStack.translate(f * 0.125F, -0.125D, 0.0D);
+    private void exposure$renderOneHandedPhotograph(AbstractClientPlayerEntity player, MatrixStack matrixStack, VertexConsumerProvider buffer, int combinedLight, float pEquippedProgress, Arm pHand, float pSwingProgress, ItemStack stack) {
+        float f = pHand == Arm.RIGHT ? 1.0F : -1.0F;
+        matrixStack.translate(f * 0.125F, -0.125D, 0.0D);
         if (!player.isInvisible()) {
-            poseStack.pushPose();
-            poseStack.mulPose(Axis.ZP.rotationDegrees(f * 10.0F));
-            this.renderPlayerArm(poseStack, buffer, combinedLight, pEquippedProgress, pSwingProgress, pHand);
-            poseStack.popPose();
+            matrixStack.push();
+            matrixStack.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(f * 10.0F));
+            this.renderArmHoldingItem(matrixStack, buffer, combinedLight, pEquippedProgress, pSwingProgress, pHand);
+            matrixStack.pop();
         }
 
-        poseStack.pushPose();
-        poseStack.translate(f * 0.51F, -0.08F + pEquippedProgress * -1.2F, -0.75D);
-        float f1 = Mth.sqrt(pSwingProgress);
-        float f2 = Mth.sin(f1 * (float)Math.PI);
+        matrixStack.push();
+        matrixStack.translate(f * 0.51F, -0.08F + pEquippedProgress * -1.2F, -0.75D);
+        float f1 = MathHelper.sqrt(pSwingProgress);
+        float f2 = MathHelper.sin(f1 * (float)Math.PI);
         float f3 = -0.5F * f2;
-        float f4 = 0.4F * Mth.sin(f1 * ((float)Math.PI * 2F));
-        float f5 = -0.3F * Mth.sin(pSwingProgress * (float)Math.PI);
-        poseStack.translate(f * f3, f4 - 0.3F * f2, f5);
-        poseStack.mulPose(Axis.XP.rotationDegrees(f2 * -45.0F));
-        poseStack.mulPose(Axis.YP.rotationDegrees(f * f2 * -30.0F));
-        PhotographInHandRenderer.renderPhotograph(poseStack, buffer, combinedLight, stack);
-        poseStack.popPose();
+        float f4 = 0.4F * MathHelper.sin(f1 * ((float)Math.PI * 2F));
+        float f5 = -0.3F * MathHelper.sin(pSwingProgress * (float)Math.PI);
+        matrixStack.translate(f * f3, f4 - 0.3F * f2, f5);
+        matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(f2 * -45.0F));
+        matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(f * f2 * -30.0F));
+        PhotographInHandRenderer.renderPhotograph(matrixStack, buffer, combinedLight, stack);
+        matrixStack.pop();
     }
 
     @Unique
-    private void exposure$renderTwoHandedPhotograph(AbstractClientPlayer player, PoseStack pMatrixStack, MultiBufferSource pBuffer, int pCombinedLight, float pPitch, float pEquippedProgress, float pSwingProgress) {
-        float f = Mth.sqrt(pSwingProgress);
-        float f1 = -0.2F * Mth.sin(pSwingProgress * (float)Math.PI);
-        float f2 = -0.4F * Mth.sin(f * (float)Math.PI);
-        pMatrixStack.translate(0.0D, -f1 / 2.0F, f2);
-        float f3 = this.calculateMapTilt(pPitch);
-        pMatrixStack.translate(0.0D, 0.04F + pEquippedProgress * -1.2F + f3 * -0.5F, -0.72F);
-        pMatrixStack.mulPose(Axis.XP.rotationDegrees(f3 * -85.0F));
+    private void exposure$renderTwoHandedPhotograph(AbstractClientPlayerEntity player, MatrixStack matrixStack, VertexConsumerProvider pBuffer, int pCombinedLight, float pPitch, float pEquippedProgress, float pSwingProgress) {
+        float f = MathHelper.sqrt(pSwingProgress);
+        float f1 = -0.2F * MathHelper.sin(pSwingProgress * (float)Math.PI);
+        float f2 = -0.4F * MathHelper.sin(f * (float)Math.PI);
+        matrixStack.translate(0.0D, -f1 / 2.0F, f2);
+        float f3 = this.getMapAngle(pPitch);
+        matrixStack.translate(0.0D, 0.04F + pEquippedProgress * -1.2F + f3 * -0.5F, -0.72F);
+        matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(f3 * -85.0F));
         if (!player.isInvisible()) {
-            pMatrixStack.pushPose();
-            pMatrixStack.mulPose(Axis.YP.rotationDegrees(90.0F));
-            this.renderMapHand(pMatrixStack, pBuffer, pCombinedLight, HumanoidArm.RIGHT);
-            this.renderMapHand(pMatrixStack, pBuffer, pCombinedLight, HumanoidArm.LEFT);
-            pMatrixStack.popPose();
+            matrixStack.push();
+            matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(90.0F));
+            this.renderArm(matrixStack, pBuffer, pCombinedLight, Arm.RIGHT);
+            this.renderArm(matrixStack, pBuffer, pCombinedLight, Arm.LEFT);
+            matrixStack.pop();
         }
 
-        float f4 = Mth.sin(f * (float)Math.PI);
-        pMatrixStack.mulPose(Axis.XP.rotationDegrees(f4 * 20.0F));
-        pMatrixStack.scale(2.0F, 2.0F, 2.0F);
-        PhotographInHandRenderer.renderPhotograph(pMatrixStack, pBuffer, pCombinedLight, this.mainHandItem);
+        float f4 = MathHelper.sin(f * (float)Math.PI);
+        matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(f4 * 20.0F));
+        matrixStack.scale(2.0F, 2.0F, 2.0F);
+        PhotographInHandRenderer.renderPhotograph(matrixStack, pBuffer, pCombinedLight, this.mainHand);
     }
 }

@@ -1,7 +1,7 @@
 package io.github.mortuusars.exposure.util;
 
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 
 public class ItemAndStack<T extends Item> {
     private final T item;

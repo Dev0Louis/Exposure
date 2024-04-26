@@ -8,10 +8,10 @@ import io.github.mortuusars.exposure.network.packet.server.*;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
@@ -44,7 +44,7 @@ public class PacketsImpl {
         ClientPackets.sendToServer(packet);
     }
 
-    public static void sendToClient(IPacket packet, ServerPlayer player) {
+    public static void sendToClient(IPacket packet, ServerPlayerEntity player) {
         ServerPlayNetworking.send(player, packet.getId(), packet.toBuffer(PacketByteBufs.create()));
     }
 
@@ -54,8 +54,8 @@ public class PacketsImpl {
             return;
         }
 
-        FriendlyByteBuf packetBuffer = packet.toBuffer(PacketByteBufs.create());
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+        PacketByteBuf packetBuffer = packet.toBuffer(PacketByteBufs.create());
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             ServerPlayNetworking.send(player, packet.getId(), packetBuffer);
         }
     }
@@ -69,9 +69,9 @@ public class PacketsImpl {
         PacketsImpl.server = null;
     }
 
-    private record ServerHandler(Function<FriendlyByteBuf, IPacket> decodeFunction) implements ServerPlayNetworking.PlayChannelHandler {
+    private record ServerHandler(Function<PacketByteBuf, IPacket> decodeFunction) implements ServerPlayNetworking.PlayChannelHandler {
         @Override
-        public void receive(MinecraftServer server, ServerPlayer player, ServerGamePacketListenerImpl handler, FriendlyByteBuf buf, PacketSender responseSender) {
+        public void receive(MinecraftServer server, ServerPlayerEntity player, ServerPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
             IPacket packet = decodeFunction.apply(buf);
             packet.handle(PacketDirection.TO_SERVER, player);
         }

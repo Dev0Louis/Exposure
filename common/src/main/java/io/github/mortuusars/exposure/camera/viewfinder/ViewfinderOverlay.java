@@ -1,8 +1,6 @@
 package io.github.mortuusars.exposure.camera.viewfinder;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
-import com.mojang.math.Axis;
 import io.github.mortuusars.exposure.Config;
 import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.gui.screen.camera.ViewfinderControlsScreen;
@@ -10,23 +8,25 @@ import io.github.mortuusars.exposure.item.FilmRollItem;
 import io.github.mortuusars.exposure.util.CameraInHand;
 import io.github.mortuusars.exposure.util.GuiUtil;
 import io.github.mortuusars.exposure.util.ItemAndStack;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.*;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix4f;
 
 import java.awt.geom.Rectangle2D;
 import java.util.Optional;
 
 public class ViewfinderOverlay {
-    private static final ResourceLocation VIEWFINDER_TEXTURE = Exposure.resource("textures/gui/viewfinder/viewfinder.png");
+    private static final Identifier VIEWFINDER_TEXTURE = Exposure.resource("textures/gui/viewfinder/viewfinder.png");
     public static Rectangle2D.Float opening = new Rectangle2D.Float(0, 0, 0, 0);
 
-    private static final PoseStack POSE_STACK = new PoseStack();
-    private static Minecraft minecraft = Minecraft.getInstance();
-    private static Player player = minecraft.player;
+    private static final MatrixStack POSE_STACK = new MatrixStack();
+    private static MinecraftClient minecraft = MinecraftClient.getInstance();
+    private static PlayerEntity player = minecraft.player;
 
     private static int backgroundColor;
 
@@ -38,7 +38,7 @@ public class ViewfinderOverlay {
     private static Float yRot0 = null;
 
     public static void setup() {
-        minecraft = Minecraft.getInstance();
+        minecraft = MinecraftClient.getInstance();
         player = minecraft.player;
 
         backgroundColor = Config.Client.getBackgroundColor();
@@ -50,15 +50,15 @@ public class ViewfinderOverlay {
     }
 
     public static void render() {
-        final int width = minecraft.getWindow().getGuiScaledWidth();
-        final int height = minecraft.getWindow().getGuiScaledHeight();
+        final int width = minecraft.getWindow().getScaledWidth();
+        final int height = minecraft.getWindow().getScaledHeight();
 
-        scale = Mth.lerp(Math.min(0.5f * minecraft.getDeltaFrameTime(), 0.5f), scale, 1f);
+        scale = MathHelper.lerp(Math.min(0.5f * minecraft.getLastFrameDuration(), 0.5f), scale, 1f);
         float openingSize = Math.min(width, height);
 
         opening = new Rectangle2D.Float((width - openingSize) / 2f, (height - openingSize) / 2f, openingSize, openingSize);
 
-        if (minecraft.options.hideGui)
+        if (minecraft.options.hudHidden)
             return;
 
         CameraInHand camera = CameraInHand.getActive(player);
@@ -72,36 +72,36 @@ public class ViewfinderOverlay {
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
         if (xRot == null || yRot == null || xRot0 == null || yRot0 == null) {
-            xRot = player.getXRot();
-            yRot = player.getYRot();
+            xRot = player.getPitch();
+            yRot = player.getYaw();
             xRot0 = xRot;
             yRot0 = yRot;
         }
-        float delta = Math.min(0.75f * minecraft.getDeltaFrameTime(), 0.75f);
-        xRot0 = Mth.lerp(delta, xRot0, xRot);
-        yRot0 = Mth.lerp(delta, yRot0, yRot);
-        xRot = player.getXRot();
-        yRot = player.getYRot();
+        float delta = Math.min(0.75f * minecraft.getLastFrameDuration(), 0.75f);
+        xRot0 = MathHelper.lerp(delta, xRot0, xRot);
+        yRot0 = MathHelper.lerp(delta, yRot0, yRot);
+        xRot = player.getPitch();
+        yRot = player.getYaw();
         float xDelay = xRot - xRot0;
         float yDelay = yRot - yRot0;
 
-        PoseStack poseStack = POSE_STACK;
-        poseStack.pushPose();
+        MatrixStack poseStack = POSE_STACK;
+        poseStack.push();
         poseStack.translate(width / 2f, height / 2f, 0);
         poseStack.scale(scale, scale, scale);
 
-        float attackAnim = player.getAttackAnim(minecraft.getFrameTime());
+        float attackAnim = player.getHandSwingProgress(minecraft.getTickDelta());
         if (attackAnim > 0.5f)
             attackAnim = 1f - attackAnim;
         poseStack.scale(1f - attackAnim * 0.4f, 1f - attackAnim * 0.6f, 1f - attackAnim * 0.4f);
         poseStack.translate(width / 16f * attackAnim, width / 5f * attackAnim, 0);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(attackAnim, 0, 10)));
-        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(attackAnim, 0, 100)));
+        poseStack.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(MathHelper.lerp(attackAnim, 0, 10)));
+        poseStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(MathHelper.lerp(attackAnim, 0, 100)));
 
         poseStack.translate(-width / 2f - yDelay, -height / 2f - xDelay, 0);
 
-        if (minecraft.options.bobView().get())
-            bobView(poseStack, minecraft.getFrameTime());
+        if (minecraft.options.getBobView().getValue())
+            bobView(poseStack, minecraft.getTickDelta());
 
         // -9999 to cover all screen when poseStack is scaled down.
         // Left
@@ -131,7 +131,7 @@ public class ViewfinderOverlay {
         GuiUtil.blit(poseStack, opening.x, opening.x + opening.width, opening.y, opening.y + opening.height, -1f, 0f, 1f, 0f, 1f);
 
         // Icons
-        if (!(minecraft.screen instanceof ViewfinderControlsScreen)) {
+        if (!(minecraft.currentScreen instanceof ViewfinderControlsScreen)) {
             Optional<ItemAndStack<FilmRollItem>> film = camera.getItem().getFilm(camera.getStack());
             if (film.isEmpty() || !film.get().getItem().canAddFrame(film.get().getStack())) {
                 RenderSystem.setShaderTexture(0, Exposure.resource("textures/gui/viewfinder/icon/no_film.png"));
@@ -142,10 +142,10 @@ public class ViewfinderOverlay {
             }
         }
 
-        poseStack.popPose();
+        poseStack.pop();
     }
 
-    public static void drawRect(PoseStack poseStack, float minX, float minY, float maxX, float maxY, int color) {
+    public static void drawRect(MatrixStack poseStack, float minX, float minY, float maxX, float maxY, int color) {
         if (minX < maxX) {
             float temp = minX;
             minX = maxX;
@@ -163,28 +163,28 @@ public class ViewfinderOverlay {
         float g = (color >> 8 & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        Matrix4f matrix = poseStack.last().pose();
+        Matrix4f matrix = poseStack.peek().getPositionMatrix();
 
-        BufferBuilder bufferbuilder = Tesselator.getInstance().getBuilder();
+        BufferBuilder bufferbuilder = Tessellator.getInstance().getBuffer();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        bufferbuilder.vertex(matrix, minX, maxY, 0.0F).color(r, g, b, alpha).endVertex();
-        bufferbuilder.vertex(matrix, maxX, maxY, 0.0F).color(r, g, b, alpha).endVertex();
-        bufferbuilder.vertex(matrix, maxX, minY, 0.0F).color(r, g, b, alpha).endVertex();
-        bufferbuilder.vertex(matrix, minX, minY, 0.0F).color(r, g, b, alpha).endVertex();
-        BufferUploader.drawWithShader(bufferbuilder.end());
+        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        bufferbuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+        bufferbuilder.vertex(matrix, minX, maxY, 0.0F).color(r, g, b, alpha).next();
+        bufferbuilder.vertex(matrix, maxX, maxY, 0.0F).color(r, g, b, alpha).next();
+        bufferbuilder.vertex(matrix, maxX, minY, 0.0F).color(r, g, b, alpha).next();
+        bufferbuilder.vertex(matrix, minX, minY, 0.0F).color(r, g, b, alpha).next();
+        BufferRenderer.drawWithGlobalProgram(bufferbuilder.end());
         RenderSystem.disableBlend();
     }
 
-    public static void bobView(PoseStack poseStack, float partialTicks) {
-        if (minecraft.getCameraEntity() instanceof Player pl) {
-            float f = pl.walkDist - pl.walkDistO;
-            float f1 = -(pl.walkDist + f * partialTicks);
-            float f2 = Mth.lerp(partialTicks, pl.oBob, pl.bob);
-            poseStack.translate((Mth.sin(f1 * (float) Math.PI) * f2 * 16F), (-Math.abs(Mth.cos(f1 * (float) Math.PI) * f2 * 32F)), 0.0D);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(f1 * (float) Math.PI) * f2 * 3.0F));
+    public static void bobView(MatrixStack poseStack, float partialTicks) {
+        if (minecraft.getCameraEntity() instanceof PlayerEntity pl) {
+            float f = pl.horizontalSpeed - pl.prevHorizontalSpeed;
+            float f1 = -(pl.horizontalSpeed + f * partialTicks);
+            float f2 = MathHelper.lerp(partialTicks, pl.prevStrideDistance, pl.strideDistance);
+            poseStack.translate((MathHelper.sin(f1 * (float) Math.PI) * f2 * 16F), (-Math.abs(MathHelper.cos(f1 * (float) Math.PI) * f2 * 32F)), 0.0D);
+            poseStack.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(MathHelper.sin(f1 * (float) Math.PI) * f2 * 3.0F));
         }
     }
 }

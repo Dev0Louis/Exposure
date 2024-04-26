@@ -4,21 +4,21 @@ import io.github.mortuusars.exposure.Config;
 import io.github.mortuusars.exposure.PlatformHelper;
 import io.github.mortuusars.exposure.camera.infrastructure.FilmType;
 import io.github.mortuusars.exposure.gui.ClientGUI;
-import net.minecraft.ChatFormatting;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.util.Mth;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import net.minecraft.client.item.TooltipContext;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.World;
 
 public class FilmRollItem extends Item implements IFilmItem {
     public static final String FRAME_SIZE_TAG = "FrameSize";
@@ -27,7 +27,7 @@ public class FilmRollItem extends Item implements IFilmItem {
     private final int defaultFrameSize;
     private final int barColor;
 
-    public FilmRollItem(FilmType filmType, int defaultFrameSize, int barColor, Properties properties) {
+    public FilmRollItem(FilmType filmType, int defaultFrameSize, int barColor, Settings properties) {
         super(properties);
         this.filmType = filmType;
         this.defaultFrameSize = defaultFrameSize;
@@ -40,32 +40,32 @@ public class FilmRollItem extends Item implements IFilmItem {
     }
 
     public int getFrameSize(ItemStack filmStack) {
-        if (filmStack.getTag() != null && filmStack.getOrCreateTag().contains(FRAME_SIZE_TAG, Tag.TAG_INT))
-            return Mth.clamp(filmStack.getOrCreateTag().getInt(FRAME_SIZE_TAG), 1, 2048);
+        if (filmStack.getNbt() != null && filmStack.getOrCreateNbt().contains(FRAME_SIZE_TAG, NbtElement.INT_TYPE))
+            return MathHelper.clamp(filmStack.getOrCreateNbt().getInt(FRAME_SIZE_TAG), 1, 2048);
         else
             return defaultFrameSize;
     }
 
-    public boolean isBarVisible(@NotNull ItemStack stack) {
+    public boolean isItemBarVisible(@NotNull ItemStack stack) {
         return getExposedFramesCount(stack) > 0;
     }
 
-    public int getBarWidth(@NotNull ItemStack stack) {
+    public int getItemBarStep(@NotNull ItemStack stack) {
         return Math.min(1 + 12 * getExposedFramesCount(stack) / getMaxFrameCount(stack), 13);
     }
 
-    public int getBarColor(@NotNull ItemStack stack) {
+    public int getItemBarColor(@NotNull ItemStack stack) {
         return barColor;
     }
 
-    public void addFrame(ItemStack filmStack, CompoundTag frame) {
-        CompoundTag tag = filmStack.getOrCreateTag();
+    public void addFrame(ItemStack filmStack, NbtCompound frame) {
+        NbtCompound tag = filmStack.getOrCreateNbt();
 
-        if (!tag.contains("Frames", Tag.TAG_LIST)) {
-            tag.put("Frames", new ListTag());
+        if (!tag.contains("Frames", NbtElement.LIST_TYPE)) {
+            tag.put("Frames", new NbtList());
         }
 
-        ListTag listTag = tag.getList("Frames", Tag.TAG_COMPOUND);
+        NbtList listTag = tag.getList("Frames", NbtElement.COMPOUND_TYPE);
 
         if (listTag.size() >= getMaxFrameCount(filmStack))
             throw new IllegalStateException("Cannot add more frames than film could fit. Size: " + listTag.size());
@@ -75,46 +75,46 @@ public class FilmRollItem extends Item implements IFilmItem {
     }
 
     public boolean canAddFrame(ItemStack filmStack) {
-        if (!filmStack.hasTag() || !filmStack.getOrCreateTag().contains("Frames", Tag.TAG_LIST))
+        if (!filmStack.hasNbt() || !filmStack.getOrCreateNbt().contains("Frames", NbtElement.LIST_TYPE))
             return true;
 
-        return filmStack.getOrCreateTag().getList("Frames", Tag.TAG_COMPOUND).size() < getMaxFrameCount(filmStack);
+        return filmStack.getOrCreateNbt().getList("Frames", NbtElement.COMPOUND_TYPE).size() < getMaxFrameCount(filmStack);
     }
 
     @Override
-    public void appendHoverText(@NotNull ItemStack stack, @Nullable Level level, @NotNull List<Component> tooltipComponents, @NotNull TooltipFlag isAdvanced) {
+    public void appendTooltip(@NotNull ItemStack stack, @Nullable World level, @NotNull List<Text> tooltipComponents, @NotNull TooltipContext isAdvanced) {
         int exposedFrames = getExposedFramesCount(stack);
         if (exposedFrames > 0) {
             int totalFrames = getMaxFrameCount(stack);
-            tooltipComponents.add(Component.translatable("item.exposure.film_roll.tooltip.frame_count", exposedFrames, totalFrames)
-                    .withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Text.translatable("item.exposure.film_roll.tooltip.frame_count", exposedFrames, totalFrames)
+                    .formatted(Formatting.GRAY));
         }
 
         int frameSize = getFrameSize(stack);
         if (frameSize != defaultFrameSize) {
-            tooltipComponents.add(Component.translatable("item.exposure.film_roll.tooltip.frame_size",
-                    Component.literal(String.format("%.1f", frameSize / 10f)))
-                            .withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Text.translatable("item.exposure.film_roll.tooltip.frame_size",
+                    Text.literal(String.format("%.1f", frameSize / 10f)))
+                            .formatted(Formatting.GRAY));
         }
 
 
         // Create compat:
-        int developingStep = stack.getTag() != null ? stack.getTag().getInt("CurrentDevelopingStep") : 0;
+        int developingStep = stack.getNbt() != null ? stack.getNbt().getInt("CurrentDevelopingStep") : 0;
         if (Config.Common.CREATE_SPOUT_DEVELOPING_ENABLED.get() && developingStep > 0) {
             List<? extends String> totalSteps = Config.Common.spoutDevelopingSequence(getType()).get();
 
-            MutableComponent stepsComponent = Component.literal("");
+            MutableText stepsComponent = Text.literal("");
 
             for (int i = 0; i < developingStep; i++) {
-                stepsComponent.append(Component.literal("I").withStyle(ChatFormatting.GOLD));
+                stepsComponent.append(Text.literal("I").formatted(Formatting.GOLD));
             }
 
             for (int i = developingStep; i < totalSteps.size(); i++) {
-                stepsComponent.append(Component.literal("I").withStyle(ChatFormatting.DARK_GRAY));
+                stepsComponent.append(Text.literal("I").formatted(Formatting.DARK_GRAY));
             }
 
-            tooltipComponents.add(Component.translatable("item.exposure.film_roll.tooltip.developing_step", stepsComponent)
-                    .withStyle(ChatFormatting.GOLD));
+            tooltipComponents.add(Text.translatable("item.exposure.film_roll.tooltip.developing_step", stepsComponent)
+                    .formatted(Formatting.GOLD));
         }
 
         if (exposedFrames > 0 && !PlatformHelper.isModLoaded("jei") && Config.Client.RECIPE_TOOLTIPS_WITHOUT_JEI.get()) {

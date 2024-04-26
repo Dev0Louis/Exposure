@@ -1,7 +1,7 @@
 package io.github.mortuusars.exposure.render.modifiers;
 
 import io.github.mortuusars.exposure.util.HUSLColorConverter;
-import net.minecraft.util.Mth;
+import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.StringUtils;
 
 public class AgedHSLUVPixelModifier implements IPixelModifier {
@@ -39,9 +39,9 @@ public class AgedHSLUVPixelModifier implements IPixelModifier {
         int blue = ABGR & 0xFF;
 
         // Raise black point to make the image appear faded:
-        red = (int) Mth.map(red, 0, 255, blackPoint, whitePoint);
-        green = (int) Mth.map(green, 0, 255, blackPoint, whitePoint);
-        blue = (int) Mth.map(blue, 0, 255, blackPoint, whitePoint);
+        red = (int) MathHelper.map(red, 0, 255, blackPoint, whitePoint);
+        green = (int) MathHelper.map(green, 0, 255, blackPoint, whitePoint);
+        blue = (int) MathHelper.map(blue, 0, 255, blackPoint, whitePoint);
 
         // Apply sepia tone with 'color' blending mode:
         double[] hsluv = HUSLColorConverter.rgbToHsluv(new double[] { red / 255f, green / 255f, blue / 255f });
@@ -50,9 +50,9 @@ public class AgedHSLUVPixelModifier implements IPixelModifier {
 
         double[] rgb = HUSLColorConverter.hsluvToRgb(hsluv);
 
-        int newRed = Mth.clamp((int) Mth.lerp(tintOpacity, red, rgb[2] * 255), 0, 255);
-        int newGreen = Mth.clamp((int) Mth.lerp(tintOpacity, green, rgb[1] * 255), 0, 255);
-        int newBlue = Mth.clamp((int) Mth.lerp(tintOpacity, blue, rgb[0] * 255), 0, 255);
+        int newRed = MathHelper.clamp((int) MathHelper.lerp(tintOpacity, red, rgb[2] * 255), 0, 255);
+        int newGreen = MathHelper.clamp((int) MathHelper.lerp(tintOpacity, green, rgb[1] * 255), 0, 255);
+        int newBlue = MathHelper.clamp((int) MathHelper.lerp(tintOpacity, blue, rgb[0] * 255), 0, 255);
 
         ABGR = (alpha << 24) | (newRed << 16) | (newGreen << 8) | newBlue;
         return ABGR;

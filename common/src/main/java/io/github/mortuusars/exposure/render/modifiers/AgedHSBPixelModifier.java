@@ -1,10 +1,10 @@
 package io.github.mortuusars.exposure.render.modifiers;
 
 import io.github.mortuusars.exposure.util.HUSLColorConverter;
-import net.minecraft.util.Mth;
 import org.apache.commons.lang3.StringUtils;
 
 import java.awt.*;
+import net.minecraft.util.math.MathHelper;
 
 public class AgedHSBPixelModifier implements IPixelModifier {
     public final int tintColor;
@@ -41,9 +41,9 @@ public class AgedHSBPixelModifier implements IPixelModifier {
         int blue = ABGR & 0xFF;
 
         // Raise black point to make the image appear faded:
-        red = (int) Mth.map(red, 0, 255, blackPoint, whitePoint);
-        green = (int) Mth.map(green, 0, 255, blackPoint, whitePoint);
-        blue = (int) Mth.map(blue, 0, 255, blackPoint, whitePoint);
+        red = (int) MathHelper.map(red, 0, 255, blackPoint, whitePoint);
+        green = (int) MathHelper.map(green, 0, 255, blackPoint, whitePoint);
+        blue = (int) MathHelper.map(blue, 0, 255, blackPoint, whitePoint);
 
         float[] baseHSB = new float[3];
         Color.RGBtoHSB(red, green, blue, baseHSB);
@@ -53,13 +53,13 @@ public class AgedHSBPixelModifier implements IPixelModifier {
         Color.RGBtoHSB(tint.getRed(), tint.getGreen(), tint.getBlue(), tintHSB);
 
         // Luma is no 100% correct. It's brighter than it would have been originally, but brighter looks better.
-        int luma = Mth.clamp((int) (0.45 * red + 0.65 * green + 0.2 * blue), 0, 255);
+        int luma = MathHelper.clamp((int) (0.45 * red + 0.65 * green + 0.2 * blue), 0, 255);
         int rgb = Color.HSBtoRGB(tintHSB[0], tintHSB[1], luma / 255f);
 
         // Blend two colors together:
-        int newRed = Mth.clamp((int) Mth.lerp(tintOpacity, red, rgb & 0xFF), 0, 255);
-        int newGreen = Mth.clamp((int) Mth.lerp(tintOpacity, green, (rgb >> 8) & 0xFF), 0, 255);
-        int newBlue = Mth.clamp((int) Mth.lerp(tintOpacity, blue, (rgb >> 16) & 0xFF), 0, 255);
+        int newRed = MathHelper.clamp((int) MathHelper.lerp(tintOpacity, red, rgb & 0xFF), 0, 255);
+        int newGreen = MathHelper.clamp((int) MathHelper.lerp(tintOpacity, green, (rgb >> 8) & 0xFF), 0, 255);
+        int newBlue = MathHelper.clamp((int) MathHelper.lerp(tintOpacity, blue, (rgb >> 16) & 0xFF), 0, 255);
 
         ABGR = (alpha << 24) | (newRed << 16) | (newGreen << 8) | newBlue;
         return ABGR;

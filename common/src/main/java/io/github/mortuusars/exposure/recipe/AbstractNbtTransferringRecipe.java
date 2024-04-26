@@ -1,28 +1,28 @@
 package io.github.mortuusars.exposure.recipe;
 
-import net.minecraft.core.NonNullList;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.CraftingContainer;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.CustomRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.level.Level;
+import net.minecraft.inventory.RecipeInputInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.SpecialCraftingRecipe;
+import net.minecraft.recipe.book.CraftingRecipeCategory;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractNbtTransferringRecipe extends CustomRecipe {
+public abstract class AbstractNbtTransferringRecipe extends SpecialCraftingRecipe {
     private final ItemStack result;
     private final Ingredient transferIngredient;
-    private final NonNullList<Ingredient> ingredients;
+    private final DefaultedList<Ingredient> ingredients;
 
-    public AbstractNbtTransferringRecipe(ResourceLocation id, Ingredient transferIngredient, NonNullList<Ingredient> ingredients, ItemStack result) {
-        super(id, CraftingBookCategory.MISC);
+    public AbstractNbtTransferringRecipe(Identifier id, Ingredient transferIngredient, DefaultedList<Ingredient> ingredients, ItemStack result) {
+        super(id, CraftingRecipeCategory.MISC);
         this.transferIngredient = transferIngredient;
         this.ingredients = ingredients;
         this.result = result;
@@ -33,12 +33,12 @@ public abstract class AbstractNbtTransferringRecipe extends CustomRecipe {
     }
 
     @Override
-    public @NotNull NonNullList<Ingredient> getIngredients() {
+    public @NotNull DefaultedList<Ingredient> getIngredients() {
         return ingredients;
     }
 
     @Override
-    public @NotNull ItemStack getResultItem(RegistryAccess registryAccess) {
+    public @NotNull ItemStack getOutput(DynamicRegistryManager registryAccess) {
         return getResult();
     }
 
@@ -47,7 +47,7 @@ public abstract class AbstractNbtTransferringRecipe extends CustomRecipe {
     }
 
     @Override
-    public boolean matches(CraftingContainer container, Level level) {
+    public boolean matches(RecipeInputInventory container, World level) {
         if (getTransferIngredient().isEmpty() || ingredients.isEmpty())
             return false;
 
@@ -56,8 +56,8 @@ public abstract class AbstractNbtTransferringRecipe extends CustomRecipe {
 
         int itemsInCraftingGrid = 0;
 
-        for (int i = 0; i < container.getContainerSize(); i++) {
-            ItemStack stack = container.getItem(i);
+        for (int i = 0; i < container.size(); i++) {
+            ItemStack stack = container.getStack(i);
             if (!stack.isEmpty())
                 itemsInCraftingGrid++;
 
@@ -78,31 +78,31 @@ public abstract class AbstractNbtTransferringRecipe extends CustomRecipe {
     }
 
     @Override
-    public @NotNull ItemStack assemble(CraftingContainer container, @NotNull RegistryAccess registryAccess) {
-        for (int index = 0; index < container.getContainerSize(); index++) {
-            ItemStack itemStack = container.getItem(index);
+    public @NotNull ItemStack craft(RecipeInputInventory container, @NotNull DynamicRegistryManager registryAccess) {
+        for (int index = 0; index < container.size(); index++) {
+            ItemStack itemStack = container.getStack(index);
 
             if (getTransferIngredient().test(itemStack)) {
-                return transferNbt(itemStack, getResultItem(registryAccess).copy());
+                return transferNbt(itemStack, getOutput(registryAccess).copy());
             }
         }
 
-        return getResultItem(registryAccess);
+        return getOutput(registryAccess);
     }
 
     public @NotNull ItemStack transferNbt(ItemStack transferIngredientStack, ItemStack recipeResultStack) {
-        @Nullable CompoundTag transferTag = transferIngredientStack.getTag();
+        @Nullable NbtCompound transferTag = transferIngredientStack.getNbt();
         if (transferTag != null) {
-            if (recipeResultStack.getTag() != null)
-                recipeResultStack.getTag().merge(transferTag);
+            if (recipeResultStack.getNbt() != null)
+                recipeResultStack.getNbt().copyFrom(transferTag);
             else
-                recipeResultStack.setTag(transferTag.copy());
+                recipeResultStack.setNbt(transferTag.copy());
         }
         return recipeResultStack;
     }
 
     @Override
-    public boolean canCraftInDimensions(int width, int height) {
+    public boolean fits(int width, int height) {
         return ingredients.size() <= width * height;
     }
 }

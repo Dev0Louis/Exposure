@@ -3,26 +3,25 @@ package io.github.mortuusars.exposure;
 import com.mojang.brigadier.arguments.ArgumentType;
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import io.github.mortuusars.exposure.command.argument.ShaderLocationArgument;
-import net.minecraft.commands.synchronization.ArgumentTypeInfo;
-import net.minecraft.commands.synchronization.SingletonArgumentInfo;
-import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.command.argument.serialize.ArgumentSerializer;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnGroup;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.Item;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.math.BlockPos;
 
 public class Register {
     @ExpectPlatform
@@ -53,7 +52,7 @@ public class Register {
 
     @ExpectPlatform
     public static <T extends Entity> Supplier<EntityType<T>> entityType(String id, EntityType.EntityFactory<T> factory,
-                                                                        MobCategory category, float width, float height,
+                                                                        SpawnGroup category, float width, float height,
                                                                         int clientTrackingRange, boolean velocityUpdates, int updateInterval) {
         throw new AssertionError();
     }
@@ -64,13 +63,13 @@ public class Register {
     }
 
     @ExpectPlatform
-    public static <T extends MenuType<E>, E extends AbstractContainerMenu> Supplier<T> menuType(String id, MenuTypeSupplier<E> supplier) {
+    public static <T extends ScreenHandlerType<E>, E extends ScreenHandler> Supplier<T> menuType(String id, MenuTypeSupplier<E> supplier) {
         throw new AssertionError();
     }
 
     @FunctionalInterface
-    public interface MenuTypeSupplier<T extends AbstractContainerMenu> {
-        @NotNull T create(int windowId, Inventory playerInv, FriendlyByteBuf extraData);
+    public interface MenuTypeSupplier<T extends ScreenHandler> {
+        @NotNull T create(int windowId, PlayerInventory playerInv, PacketByteBuf extraData);
     }
 
     @ExpectPlatform
@@ -79,8 +78,8 @@ public class Register {
     }
 
     @ExpectPlatform
-    public static <A extends ArgumentType<?>, T extends ArgumentTypeInfo.Template<A>, I extends ArgumentTypeInfo<A, T>>
-            Supplier<ArgumentTypeInfo<A, T>> commandArgumentType(String id, Class<A> infoClass, I argumentTypeInfo) {
+    public static <A extends ArgumentType<?>, T extends ArgumentSerializer.ArgumentTypeProperties<A>, I extends ArgumentSerializer<A, T>>
+            Supplier<ArgumentSerializer<A, T>> commandArgumentType(String id, Class<A> infoClass, I argumentTypeInfo) {
         throw new AssertionError();
     }
 }

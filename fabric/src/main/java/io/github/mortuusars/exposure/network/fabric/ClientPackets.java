@@ -7,10 +7,9 @@ import io.github.mortuusars.exposure.network.packet.client.*;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.FriendlyByteBuf;
-
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.network.PacketByteBuf;
 import java.util.function.Function;
 
 public class ClientPackets {
@@ -34,9 +33,9 @@ public class ClientPackets {
         ClientPlayNetworking.send(packet.getId(), packet.toBuffer(PacketByteBufs.create()));
     }
 
-    private record ClientHandler(Function<FriendlyByteBuf, IPacket> decodeFunction) implements ClientPlayNetworking.PlayChannelHandler {
+    private record ClientHandler(Function<PacketByteBuf, IPacket> decodeFunction) implements ClientPlayNetworking.PlayChannelHandler {
         @Override
-        public void receive(Minecraft client, ClientPacketListener handler, FriendlyByteBuf buf, PacketSender responseSender) {
+        public void receive(MinecraftClient client, ClientPlayNetworkHandler handler, PacketByteBuf buf, PacketSender responseSender) {
             IPacket packet = decodeFunction.apply(buf);
             packet.handle(PacketDirection.TO_CLIENT, null);
         }

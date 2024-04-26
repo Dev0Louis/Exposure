@@ -4,20 +4,19 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import io.github.mortuusars.exposure.Exposure;
-import io.github.mortuusars.exposure.item.PhotographItem;
-import net.minecraft.core.NonNullList;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.recipe.ShapedRecipe;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.JsonHelper;
+import net.minecraft.util.collection.DefaultedList;
 import org.jetbrains.annotations.NotNull;
 
 public class PhotographAgingRecipe extends AbstractNbtTransferringRecipe{
-    public PhotographAgingRecipe(ResourceLocation id, Ingredient transferIngredient,
-                                 NonNullList<Ingredient> ingredients, ItemStack result) {
+    public PhotographAgingRecipe(Identifier id, Ingredient transferIngredient,
+                                 DefaultedList<Ingredient> ingredients, ItemStack result) {
         super(id, transferIngredient, ingredients, result);
     }
 
@@ -28,10 +27,10 @@ public class PhotographAgingRecipe extends AbstractNbtTransferringRecipe{
 
     public static class Serializer implements RecipeSerializer<PhotographAgingRecipe> {
         @Override
-        public @NotNull PhotographAgingRecipe fromJson(ResourceLocation recipeId, JsonObject serializedRecipe) {
-            Ingredient photographIngredient = Ingredient.fromJson(GsonHelper.getNonNull(serializedRecipe, "photograph"));
-            NonNullList<Ingredient> ingredients = getIngredients(GsonHelper.getAsJsonArray(serializedRecipe, "ingredients"));
-            ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(serializedRecipe, "result"));
+        public @NotNull PhotographAgingRecipe read(Identifier recipeId, JsonObject serializedRecipe) {
+            Ingredient photographIngredient = Ingredient.fromJson(JsonHelper.getElement(serializedRecipe, "photograph"));
+            DefaultedList<Ingredient> ingredients = getIngredients(JsonHelper.getArray(serializedRecipe, "ingredients"));
+            ItemStack result = ShapedRecipe.outputFromJson(JsonHelper.getObject(serializedRecipe, "result"));
 
             if (photographIngredient.isEmpty())
                 throw new JsonParseException("Recipe should have 'photograph' ingredient.");
@@ -40,28 +39,28 @@ public class PhotographAgingRecipe extends AbstractNbtTransferringRecipe{
         }
 
         @Override
-        public @NotNull PhotographAgingRecipe fromNetwork(ResourceLocation recipeId, FriendlyByteBuf buffer) {
-            Ingredient transferredIngredient = Ingredient.fromNetwork(buffer);
+        public @NotNull PhotographAgingRecipe read(Identifier recipeId, PacketByteBuf buffer) {
+            Ingredient transferredIngredient = Ingredient.fromPacket(buffer);
             int ingredientsCount = buffer.readVarInt();
-            NonNullList<Ingredient> ingredients = NonNullList.withSize(ingredientsCount, Ingredient.EMPTY);
-            ingredients.replaceAll(ignored -> Ingredient.fromNetwork(buffer));
-            ItemStack result = buffer.readItem();
+            DefaultedList<Ingredient> ingredients = DefaultedList.ofSize(ingredientsCount, Ingredient.EMPTY);
+            ingredients.replaceAll(ignored -> Ingredient.fromPacket(buffer));
+            ItemStack result = buffer.readItemStack();
 
             return new PhotographAgingRecipe(recipeId, transferredIngredient, ingredients, result);
         }
 
         @Override
-        public void toNetwork(FriendlyByteBuf buffer, PhotographAgingRecipe recipe) {
-            recipe.getTransferIngredient().toNetwork(buffer);
+        public void write(PacketByteBuf buffer, PhotographAgingRecipe recipe) {
+            recipe.getTransferIngredient().write(buffer);
             buffer.writeVarInt(recipe.getIngredients().size());
             for (Ingredient ingredient : recipe.getIngredients()) {
-                ingredient.toNetwork(buffer);
+                ingredient.write(buffer);
             }
-            buffer.writeItem(recipe.getResult());
+            buffer.writeItemStack(recipe.getResult());
         }
 
-        private NonNullList<Ingredient> getIngredients(JsonArray jsonArray) {
-            NonNullList<Ingredient> ingredients = NonNullList.create();
+        private DefaultedList<Ingredient> getIngredients(JsonArray jsonArray) {
+            DefaultedList<Ingredient> ingredients = DefaultedList.of();
 
             for (int i = 0; i < jsonArray.size(); ++i) {
                 Ingredient ingredient = Ingredient.fromJson(jsonArray.get(i));
