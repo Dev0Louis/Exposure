@@ -5,8 +5,8 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.item.CameraItem;
 import io.github.mortuusars.exposure.network.PacketDirection;
 import io.github.mortuusars.exposure.network.packet.IPacket;
-import io.github.mortuusars.exposure.util.ItemAndStack;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.nbt.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,9 +15,6 @@ import java.util.List;
 import java.util.Map;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
@@ -28,7 +25,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.gen.structure.Structure;
 
 public record CameraInHandAddFrameC2SP(Hand hand, NbtCompound frame) implements IPacket {
-    public static final Identifier ID = Exposure.resource("camera_in_hand_add_frame");
+    public static final Identifier ID = Exposure.id("camera_in_hand_add_frame");
 
     @Override
     public Identifier getId() {
@@ -43,10 +40,10 @@ public record CameraInHandAddFrameC2SP(Hand hand, NbtCompound frame) implements 
 
     public static CameraInHandAddFrameC2SP fromBuffer(PacketByteBuf buffer) {
         Hand hand = buffer.readEnumConstant(Hand.class);
-        @Nullable NbtCompound frame = buffer.readUnlimitedNbt();
-        if (frame == null)
-            frame = new NbtCompound();
-        return new CameraInHandAddFrameC2SP(hand, frame);
+        NbtElement frame = buffer.readNbt(NbtSizeTracker.ofUnlimitedBytes());
+        //implict null check
+        if (!(frame instanceof NbtCompound)) frame = new NbtCompound();
+        return new CameraInHandAddFrameC2SP(hand, (NbtCompound) frame);
     }
 
     @Override
@@ -61,7 +58,7 @@ public record CameraInHandAddFrameC2SP(Hand hand, NbtCompound frame) implements 
         addStructuresInfo(serverPlayer);
 
         cameraItem.addFrameToFilm(itemInHand, frame);
-        Exposure.Advancements.FILM_FRAME_EXPOSED.trigger(serverPlayer, new ItemAndStack<>(itemInHand), frame);
+        //Exposure.Advancements.FILM_FRAME_EXPOSED.trigger(serverPlayer, new ItemAndStack<>(itemInHand), frame);
         return true;
     }
 

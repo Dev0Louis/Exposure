@@ -17,7 +17,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 
 public record StopOnePerPlayerSoundS2CP(UUID sourcePlayerId, SoundEvent soundEvent) implements IPacket {
-    public static final Identifier ID = Exposure.resource("stop_one_per_player_sound");
+    public static final Identifier ID = Exposure.id("stop_one_per_player_sound");
 
     @Override
     public Identifier getId() {

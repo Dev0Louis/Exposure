@@ -128,7 +128,7 @@ public class TextBox extends ClickableWidget {
     }
 
     @Override
-    protected void renderButton(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+    protected void renderWidget(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         DisplayCache displayCache = this.getDisplayCache();
         for (DisplayCache.LineInfo lineInfo : displayCache.lines) {
             guiGraphics.drawText(this.font, lineInfo.asComponent, getX() + lineInfo.x, getY() + lineInfo.y, getCurrentFontColor(), false);

@@ -11,7 +11,7 @@ public enum FilmType implements StringIdentifiable {
     COLOR("color", 180, 130, 110, 1.2F, 0.96F, 0.75F, 1.0F);
 
     @SuppressWarnings("deprecation")
-    public static final StringIdentifiable.Codec<FilmType> CODEC = StringIdentifiable.createCodec(FilmType::values);
+    public static final StringIdentifiable.EnumCodec<FilmType> CODEC = StringIdentifiable.createCodec(FilmType::values);
 
     private final String name;
     public final int frameR, frameG, frameB;

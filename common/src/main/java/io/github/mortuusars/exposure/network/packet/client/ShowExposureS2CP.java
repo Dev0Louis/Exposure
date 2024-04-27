@@ -12,7 +12,7 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 
 public final class ShowExposureS2CP implements IPacket {
-    public static final Identifier ID = Exposure.resource("show_exposure");
+    public static final Identifier ID = Exposure.id("show_exposure");
 
     private final String idOrPath;
     private final boolean isTexture;

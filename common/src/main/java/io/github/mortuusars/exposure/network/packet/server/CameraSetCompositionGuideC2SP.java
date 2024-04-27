@@ -12,7 +12,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record CameraSetCompositionGuideC2SP(CompositionGuide guide) implements IPacket {
-    public static final Identifier ID = Exposure.resource("camera_set_composition_guide");
+    public static final Identifier ID = Exposure.id("camera_set_composition_guide");
 
     @Override
     public Identifier getId() {

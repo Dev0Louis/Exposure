@@ -10,7 +10,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record ApplyShaderS2CP(Identifier shaderLocation) implements IPacket {
-    public static final Identifier ID = Exposure.resource("apply_shader");
+    public static final Identifier ID = Exposure.id("apply_shader");
 
     @Override
     public Identifier getId() {

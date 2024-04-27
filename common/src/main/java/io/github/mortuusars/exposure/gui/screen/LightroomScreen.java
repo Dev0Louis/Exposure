@@ -46,8 +46,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 
 public class LightroomScreen extends HandledScreen<LightroomMenu> {
-    public static final Identifier MAIN_TEXTURE = Exposure.resource("textures/gui/lightroom.png");
-    public static final Identifier FILM_OVERLAYS_TEXTURE = Exposure.resource("textures/gui/lightroom_film_overlays.png");
+    public static final Identifier MAIN_TEXTURE = Exposure.id("textures/gui/lightroom.png");
+    public static final Identifier FILM_OVERLAYS_TEXTURE = Exposure.id("textures/gui/lightroom_film_overlays.png");
     public static final int FRAME_SIZE = 54;
 
     protected PlayerEntity player;

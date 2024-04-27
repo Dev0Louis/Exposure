@@ -49,7 +49,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class AlbumScreen extends HandledScreen<AlbumMenu> {
-    public static final Identifier TEXTURE = Exposure.resource("textures/gui/album.png");
+    public static final Identifier TEXTURE = Exposure.id("textures/gui/album.png");
     public static final int MAIN_FONT_COLOR = 0xFFB59774;
     public static final int SECONDARY_FONT_COLOR = 0xFFEFE4CA;
     public static final int SELECTION_COLOR = 0xFF8888FF;

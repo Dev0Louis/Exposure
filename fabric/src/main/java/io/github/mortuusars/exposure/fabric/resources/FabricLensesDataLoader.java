@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.util.Identifier;
 
 public class FabricLensesDataLoader extends LensesDataLoader implements IdentifiableResourceReloadListener {
-    public static final Identifier ID = Exposure.resource("lenses_data");
+    public static final Identifier ID = Exposure.id("lenses_data");
     @Override
     public Identifier getFabricId() {
         return ID;

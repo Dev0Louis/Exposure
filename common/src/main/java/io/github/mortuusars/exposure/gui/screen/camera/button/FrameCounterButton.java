@@ -33,8 +33,8 @@ public class FrameCounterButton extends TexturedButtonWidget implements IElement
     }
 
     @Override
-    public void renderButton(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float pPartialTick) {
-        super.renderButton(guiGraphics, mouseX, mouseY, pPartialTick);
+    public void renderWidget(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float pPartialTick) {
+        super.renderWidget(guiGraphics, mouseX, mouseY, pPartialTick);
 
         CameraInHand camera = CameraInHand.getActive(MinecraftClient.getInstance().player);
 

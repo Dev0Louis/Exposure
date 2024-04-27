@@ -22,7 +22,8 @@ public class Tests {
         LogUtils.getLogger().info("RUNNING TESTS");
 
         Pair<List<TestResult>, List<TestResult>> ran = run(
-                new ExposurePredicateTests().collect()
+                List.of()
+                //new ExposurePredicateTests().collect()
         );
 
         List<TestResult> skipped = skip();

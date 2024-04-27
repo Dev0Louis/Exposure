@@ -21,8 +21,8 @@ public abstract class AbstractNbtTransferringRecipe extends SpecialCraftingRecip
     private final Ingredient transferIngredient;
     private final DefaultedList<Ingredient> ingredients;
 
-    public AbstractNbtTransferringRecipe(Identifier id, Ingredient transferIngredient, DefaultedList<Ingredient> ingredients, ItemStack result) {
-        super(id, CraftingRecipeCategory.MISC);
+    public AbstractNbtTransferringRecipe(Ingredient transferIngredient, DefaultedList<Ingredient> ingredients, ItemStack result) {
+        super(CraftingRecipeCategory.MISC);
         this.transferIngredient = transferIngredient;
         this.ingredients = ingredients;
         this.result = result;
@@ -38,7 +38,7 @@ public abstract class AbstractNbtTransferringRecipe extends SpecialCraftingRecip
     }
 
     @Override
-    public @NotNull ItemStack getOutput(DynamicRegistryManager registryAccess) {
+    public @NotNull ItemStack getResult(DynamicRegistryManager registryAccess) {
         return getResult();
     }
 
@@ -83,11 +83,11 @@ public abstract class AbstractNbtTransferringRecipe extends SpecialCraftingRecip
             ItemStack itemStack = container.getStack(index);
 
             if (getTransferIngredient().test(itemStack)) {
-                return transferNbt(itemStack, getOutput(registryAccess).copy());
+                return transferNbt(itemStack, getResult(registryAccess).copy());
             }
         }
 
-        return getOutput(registryAccess);
+        return getResult(registryAccess);
     }
 
     public @NotNull ItemStack transferNbt(ItemStack transferIngredientStack, ItemStack recipeResultStack) {

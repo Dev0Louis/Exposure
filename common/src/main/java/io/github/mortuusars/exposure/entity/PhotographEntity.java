@@ -317,9 +317,9 @@ public class PhotographEntity extends AbstractDecorationEntity {
             Box bb = getBoundingBox();
             Vec3i normal = getHorizontalFacing().getVector();
             getWorld().addParticle(ParticleTypes.END_ROD,
-                    getPos().x + (getWorld().getRandom().nextFloat() * (bb.getXLength() * 0.75f) - bb.getXLength() * 0.75f / 2),
-                    getPos().y + (getWorld().getRandom().nextFloat() * (bb.getYLength() * 0.75f) - bb.getYLength() * 0.75f / 2),
-                    getPos().z + (getWorld().getRandom().nextFloat() * (bb.getZLength() * 0.75f) - bb.getZLength() * 0.75f / 2),
+                    getPos().x + (getWorld().getRandom().nextFloat() * (bb.getLengthX() * 0.75f) - bb.getLengthX() * 0.75f / 2),
+                    getPos().y + (getWorld().getRandom().nextFloat() * (bb.getLengthY() * 0.75f) - bb.getLengthY() * 0.75f / 2),
+                    getPos().z + (getWorld().getRandom().nextFloat() * (bb.getLengthZ() * 0.75f) - bb.getLengthZ() * 0.75f / 2),
                     getWorld().getRandom().nextFloat() * 0.02f * normal.getX(),
                     getWorld().getRandom().nextFloat() * 0.02f * normal.getY(),
                     getWorld().getRandom().nextFloat() * 0.02f * normal.getZ());

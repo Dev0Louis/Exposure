@@ -3,6 +3,8 @@ package io.github.mortuusars.exposure.recipe;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.github.mortuusars.exposure.Exposure;
 import net.minecraft.inventory.RecipeInputInventory;
 import net.minecraft.item.ItemStack;
@@ -20,8 +22,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 public class FilmDevelopingRecipe extends AbstractNbtTransferringRecipe {
-    public FilmDevelopingRecipe(Identifier id, Ingredient filmIngredient, DefaultedList<Ingredient> ingredients, ItemStack result) {
-        super(id, filmIngredient, ingredients, result);
+    public FilmDevelopingRecipe(Ingredient filmIngredient, DefaultedList<Ingredient> ingredients, ItemStack result) {
+        super(filmIngredient, ingredients, result);
     }
 
     @Override
@@ -47,27 +49,35 @@ public class FilmDevelopingRecipe extends AbstractNbtTransferringRecipe {
     }
 
     public static class Serializer implements RecipeSerializer<FilmDevelopingRecipe> {
+
+        Codec<DefaultedList<Ingredient>> DEFAULTED_INGREDIENT_LIST = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.list(Ingredient.DISALLOW_EMPTY_CODEC).fieldOf("ingredients").forGetter(ingredients -> ingredients.delegate),
+                Ingredient.DISALLOW_EMPTY_CODEC.fieldOf("defaultIngredient").forGetter(ingredients -> ingredients.initialElement)
+        ).apply(instance, DefaultedList::new));
+
+        Codec<FilmDevelopingRecipe> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Ingredient.DISALLOW_EMPTY_CODEC.fieldOf("transferIngredient").forGetter(FilmDevelopingRecipe::getTransferIngredient),
+                DEFAULTED_INGREDIENT_LIST.fieldOf("ingredients").forGetter(FilmDevelopingRecipe::getIngredients),
+                ItemStack.CODEC.fieldOf("result").forGetter(FilmDevelopingRecipe::getResult)
+
+        ).apply(
+                instance, FilmDevelopingRecipe::new
+        ));
+
         @Override
-        public @NotNull FilmDevelopingRecipe read(Identifier recipeId, JsonObject serializedRecipe) {
-            Ingredient filmIngredient = Ingredient.fromJson(JsonHelper.getElement(serializedRecipe, "film"));
-            DefaultedList<Ingredient> ingredients = getIngredients(JsonHelper.getArray(serializedRecipe, "ingredients"));
-            ItemStack result = ShapedRecipe.outputFromJson(JsonHelper.getObject(serializedRecipe, "result"));
-
-            if (filmIngredient.isEmpty())
-                throw new JsonParseException("Recipe should have 'film' ingredient.");
-
-            return new FilmDevelopingRecipe(recipeId, filmIngredient, ingredients, result);
+        public Codec<FilmDevelopingRecipe> codec() {
+            return CODEC;
         }
 
         @Override
-        public @NotNull FilmDevelopingRecipe read(Identifier recipeId, PacketByteBuf buffer) {
+        public @NotNull FilmDevelopingRecipe read(PacketByteBuf buffer) {
             Ingredient transferredIngredient = Ingredient.fromPacket(buffer);
             int ingredientsCount = buffer.readVarInt();
             DefaultedList<Ingredient> ingredients = DefaultedList.ofSize(ingredientsCount, Ingredient.EMPTY);
             ingredients.replaceAll(ignored -> Ingredient.fromPacket(buffer));
             ItemStack result = buffer.readItemStack();
 
-            return new FilmDevelopingRecipe(recipeId, transferredIngredient, ingredients, result);
+            return new FilmDevelopingRecipe(transferredIngredient, ingredients, result);
         }
 
         @Override
@@ -78,22 +88,6 @@ public class FilmDevelopingRecipe extends AbstractNbtTransferringRecipe {
                 ingredient.write(buffer);
             }
             buffer.writeItemStack(recipe.getResult());
-        }
-
-        private DefaultedList<Ingredient> getIngredients(JsonArray jsonArray) {
-            DefaultedList<Ingredient> ingredients = DefaultedList.of();
-
-            for (int i = 0; i < jsonArray.size(); ++i) {
-                Ingredient ingredient = Ingredient.fromJson(jsonArray.get(i));
-                if (!ingredient.isEmpty())
-                    ingredients.add(ingredient);
-            }
-
-            if (ingredients.isEmpty())
-                throw new JsonParseException("No ingredients for a recipe.");
-            else if (ingredients.size() > 3 * 3)
-                throw new JsonParseException("Too many ingredients for a recipe. The maximum is 9.");
-            return ingredients;
         }
     }
 }

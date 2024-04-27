@@ -33,7 +33,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 
 public class ViewfinderControlsScreen extends Screen {
-    public static final Identifier TEXTURE = Exposure.resource("textures/gui/viewfinder/viewfinder_camera_controls.png");
+    public static final Identifier TEXTURE = Exposure.id("textures/gui/viewfinder/viewfinder_camera_controls.png");
 
     private final PlayerEntity player;
     private final ClientWorld level;

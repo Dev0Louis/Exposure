@@ -23,7 +23,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 
 public class CameraAttachmentsScreen extends HandledScreen<CameraAttachmentsMenu> {
-    public static final Identifier TEXTURE = Exposure.resource("textures/gui/camera_attachments.png");
+    public static final Identifier TEXTURE = Exposure.id("textures/gui/camera_attachments.png");
 
     public CameraAttachmentsScreen(CameraAttachmentsMenu menu, PlayerInventory playerInventory, Text title) {
         super(menu, playerInventory, title);

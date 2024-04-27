@@ -46,7 +46,7 @@ public class PhotographSlotButton extends TexturedButtonWidget {
     }
 
     @Override
-    public void renderButton(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void renderWidget(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         ItemStack photograph = getPhotograph();
 
         if (photograph.getItem() instanceof PhotographItem) {

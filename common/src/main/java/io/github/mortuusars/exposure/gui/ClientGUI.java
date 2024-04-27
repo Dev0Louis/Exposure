@@ -6,6 +6,7 @@ import io.github.mortuusars.exposure.item.PhotographItem;
 import io.github.mortuusars.exposure.recipe.FilmDevelopingRecipe;
 import io.github.mortuusars.exposure.recipe.PhotographCopyingRecipe;
 import io.github.mortuusars.exposure.util.ItemAndStack;
+import net.minecraft.recipe.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,10 +17,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.item.ItemStack;
-import net.minecraft.recipe.CraftingRecipe;
-import net.minecraft.recipe.Ingredient;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.RecipeType;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
@@ -60,6 +57,7 @@ public class ClientGUI {
 
         Optional<DefaultedList<Ingredient>> recipeIngredients = level.getRecipeManager().listAllOfType(RecipeType.CRAFTING)
                 .stream()
+                .map(RecipeEntry::value)
                 .filter(recipeFilter)
                 .findFirst()
                 .map(Recipe::getIngredients);

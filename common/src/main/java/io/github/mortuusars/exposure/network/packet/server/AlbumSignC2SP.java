@@ -15,7 +15,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record AlbumSignC2SP(String title) implements IPacket {
-    public static final Identifier ID = Exposure.resource("album_sign");
+    public static final Identifier ID = Exposure.id("album_sign");
 
     @Override
     public Identifier getId() {

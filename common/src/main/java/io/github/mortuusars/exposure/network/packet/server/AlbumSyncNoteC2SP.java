@@ -13,7 +13,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record AlbumSyncNoteC2SP(int pageIndex, String text) implements IPacket {
-    public static final Identifier ID = Exposure.resource("album_update_note");
+    public static final Identifier ID = Exposure.id("album_update_note");
 
     @Override
     public Identifier getId() {

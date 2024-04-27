@@ -21,7 +21,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.Optional;
 
 public class ViewfinderOverlay {
-    private static final Identifier VIEWFINDER_TEXTURE = Exposure.resource("textures/gui/viewfinder/viewfinder.png");
+    private static final Identifier VIEWFINDER_TEXTURE = Exposure.id("textures/gui/viewfinder/viewfinder.png");
     public static Rectangle2D.Float opening = new Rectangle2D.Float(0, 0, 0, 0);
 
     private static final MatrixStack POSE_STACK = new MatrixStack();
@@ -126,7 +126,7 @@ public class ViewfinderOverlay {
         GuiUtil.blit(poseStack, opening.x, opening.x + opening.width, opening.y, opening.y + opening.height, 0f, 0f, 1f, 0f, 1f);
 
         // Guide
-        RenderSystem.setShaderTexture(0, Exposure.resource("textures/gui/viewfinder/composition_guide/" +
+        RenderSystem.setShaderTexture(0, Exposure.id("textures/gui/viewfinder/composition_guide/" +
                 camera.getItem().getCompositionGuide(camera.getStack()).getId() + ".png"));
         GuiUtil.blit(poseStack, opening.x, opening.x + opening.width, opening.y, opening.y + opening.height, -1f, 0f, 1f, 0f, 1f);
 
@@ -134,7 +134,7 @@ public class ViewfinderOverlay {
         if (!(minecraft.currentScreen instanceof ViewfinderControlsScreen)) {
             Optional<ItemAndStack<FilmRollItem>> film = camera.getItem().getFilm(camera.getStack());
             if (film.isEmpty() || !film.get().getItem().canAddFrame(film.get().getStack())) {
-                RenderSystem.setShaderTexture(0, Exposure.resource("textures/gui/viewfinder/icon/no_film.png"));
+                RenderSystem.setShaderTexture(0, Exposure.id("textures/gui/viewfinder/icon/no_film.png"));
                 float cropFactor = Exposure.CROP_FACTOR;
                 float fromEdge = (opening.height - (opening.height / (cropFactor))) / 2f;
                 GuiUtil.blit(poseStack, (opening.x + (opening.width / 2) - 12), (opening.y + opening.height - ((fromEdge / 2 + 10))),

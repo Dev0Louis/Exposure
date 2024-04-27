@@ -49,12 +49,13 @@ public abstract class ZoomableScreen extends Screen {
         return true;
     }
 
+
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         boolean handled = super.mouseScrolled(mouseX, mouseY, delta);
 
         if (!handled) {
-            zoom.change(delta >= 0.0 ? ZoomDirection.IN : ZoomDirection.OUT);
+            zoom.change(horizontalAmount >= 0.0 ? ZoomDirection.IN : ZoomDirection.OUT);
             return true;
         }
 

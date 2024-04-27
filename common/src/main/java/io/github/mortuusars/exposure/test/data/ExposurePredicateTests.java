@@ -1,7 +1,6 @@
 package io.github.mortuusars.exposure.test.data;
 
 import com.google.gson.JsonObject;
-import io.github.mortuusars.exposure.advancement.predicate.ExposurePredicate;
 import io.github.mortuusars.exposure.camera.infrastructure.FrameData;
 import io.github.mortuusars.exposure.test.framework.ITestClass;
 import io.github.mortuusars.exposure.test.framework.Test;

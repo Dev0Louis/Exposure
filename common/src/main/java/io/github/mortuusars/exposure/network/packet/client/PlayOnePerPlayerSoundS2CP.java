@@ -19,7 +19,7 @@ import net.minecraft.util.Identifier;
 
 public record PlayOnePerPlayerSoundS2CP(UUID sourcePlayerId, SoundEvent soundEvent, SoundCategory source,
                                         float volume, float pitch) implements IPacket {
-    public static final Identifier ID = Exposure.resource("play_one_per_player_sound");
+    public static final Identifier ID = Exposure.id("play_one_per_player_sound");
 
     @Override
     public Identifier getId() {

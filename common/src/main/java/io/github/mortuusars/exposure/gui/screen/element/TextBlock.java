@@ -94,7 +94,7 @@ public class TextBlock extends ClickableWidget {
     }
 
     @Override
-    protected void renderButton(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+    protected void renderWidget(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         for (int i = 0; i < renderedLines.size(); i++) {
             OrderedText line = renderedLines.get(i);
 

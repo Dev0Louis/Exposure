@@ -10,7 +10,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record DeactivateCamerasInHandC2SP() implements IPacket {
-    public static final Identifier ID = Exposure.resource("deactivate_cameras_in_hand");
+    public static final Identifier ID = Exposure.id("deactivate_cameras_in_hand");
 
     @Override
     public Identifier getId() {

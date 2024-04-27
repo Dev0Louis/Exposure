@@ -11,22 +11,22 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
 
 public class PhotographRenderProperties {
-    public static final Identifier EMPTY_TEXTURE = Exposure.resource("textures/empty.png");
+    public static final Identifier EMPTY_TEXTURE = Exposure.id("textures/empty.png");
 
     public static final PhotographRenderProperties DEFAULT = new PhotographRenderProperties("default",
             stack -> stack.getItem() instanceof PhotographItem,
-            Exposure.resource("textures/photograph/photograph.png"),
+            Exposure.id("textures/photograph/photograph.png"),
             EMPTY_TEXTURE,
-            Exposure.resource("textures/photograph/photograph_album.png"),
+            Exposure.id("textures/photograph/photograph_album.png"),
             EMPTY_TEXTURE,
             ExposurePixelModifiers.EMPTY);
 
     public static final PhotographRenderProperties AGED = new PhotographRenderProperties("aged",
             stack -> stack.isOf(Exposure.Items.AGED_PHOTOGRAPH.get()),
-            Exposure.resource("textures/photograph/aged_photograph.png"),
-            Exposure.resource("textures/photograph/aged_photograph_overlay.png"),
-            Exposure.resource("textures/photograph/aged_photograph_album.png"),
-            Exposure.resource("textures/photograph/aged_photograph_album_overlay.png"),
+            Exposure.id("textures/photograph/aged_photograph.png"),
+            Exposure.id("textures/photograph/aged_photograph_overlay.png"),
+            Exposure.id("textures/photograph/aged_photograph_album.png"),
+            Exposure.id("textures/photograph/aged_photograph_album_overlay.png"),
             ExposurePixelModifiers.AGED);
 
     private static final List<PhotographRenderProperties> registeredProperties = new ArrayList<>();

@@ -15,7 +15,7 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 
 public record QueryExposureDataC2SP(String id) implements IPacket {
-    public static final Identifier ID = Exposure.resource("query_exposure_data");
+    public static final Identifier ID = Exposure.id("query_exposure_data");
 
     @Override
     public Identifier getId() {

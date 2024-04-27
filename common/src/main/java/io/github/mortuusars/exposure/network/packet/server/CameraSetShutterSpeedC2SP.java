@@ -12,7 +12,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record CameraSetShutterSpeedC2SP(ShutterSpeed shutterSpeed) implements IPacket {
-    public static final Identifier ID = Exposure.resource("camera_set_shutter_speed");
+    public static final Identifier ID = Exposure.id("camera_set_shutter_speed");
     @Override
     public Identifier getId() {
         return ID;

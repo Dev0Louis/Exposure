@@ -1,7 +1,6 @@
 package io.github.mortuusars.exposure;
 
 import com.google.common.base.Preconditions;
-import io.github.mortuusars.exposure.advancement.trigger.CameraFilmFrameExposedTrigger;
 import io.github.mortuusars.exposure.block.FlashBlock;
 import io.github.mortuusars.exposure.block.LightroomBlock;
 import io.github.mortuusars.exposure.block.entity.FlashBlockEntity;
@@ -20,7 +19,6 @@ import io.github.mortuusars.exposure.menu.LightroomMenu;
 import io.github.mortuusars.exposure.recipe.FilmDevelopingRecipe;
 import io.github.mortuusars.exposure.recipe.PhotographAgingRecipe;
 import io.github.mortuusars.exposure.recipe.PhotographCopyingRecipe;
-import net.minecraft.advancement.criterion.Criteria;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.MapColor;
 import net.minecraft.block.entity.BlockEntityType;
@@ -71,7 +69,7 @@ public class Exposure {
     /**
      * Creates resource location in the mod namespace with the given path.
      */
-    public static Identifier resource(String path) {
+    public static Identifier id(String path) {
         return new Identifier(ID, path);
     }
 
@@ -214,7 +212,7 @@ public class Exposure {
             Preconditions.checkState(category != null && !category.isEmpty(), "'category' should not be empty.");
             Preconditions.checkState(key != null && !key.isEmpty(), "'key' should not be empty.");
             String path = category + "." + key;
-            return Register.soundEvent(path, () -> SoundEvent.of(Exposure.resource(path)));
+            return Register.soundEvent(path, () -> SoundEvent.of(Exposure.id(path)));
         }
 
         static void init() {
@@ -225,11 +223,11 @@ public class Exposure {
         private static final Map<Identifier, StatFormatter> STATS = new HashMap<>();
 
         public static final Identifier INTERACT_WITH_LIGHTROOM =
-                register(Exposure.resource("interact_with_lightroom"), StatFormatter.DEFAULT);
+                register(Exposure.id("interact_with_lightroom"), StatFormatter.DEFAULT);
         public static final Identifier FILM_FRAMES_EXPOSED =
-                register(Exposure.resource("film_frames_exposed"), StatFormatter.DEFAULT);
+                register(Exposure.id("film_frames_exposed"), StatFormatter.DEFAULT);
         public static final Identifier FLASHES_TRIGGERED =
-                register(Exposure.resource("flashes_triggered"), StatFormatter.DEFAULT);
+                register(Exposure.id("flashes_triggered"), StatFormatter.DEFAULT);
 
         @SuppressWarnings("SameParameterValue")
         private static Identifier register(Identifier location, StatFormatter formatter) {
@@ -245,31 +243,23 @@ public class Exposure {
         }
     }
 
-    public static class Advancements {
-        public static CameraFilmFrameExposedTrigger FILM_FRAME_EXPOSED = new CameraFilmFrameExposedTrigger();
-
-        public static void register() {
-            Criteria.register(FILM_FRAME_EXPOSED);
-        }
-    }
-
     public static class Tags {
         public static class Items {
-            public static final TagKey<Item> FILM_ROLLS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("film_rolls"));
-            public static final TagKey<Item> DEVELOPED_FILM_ROLLS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("developed_film_rolls"));
-            public static final TagKey<Item> CYAN_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.resource("cyan_printing_dyes"));
-            public static final TagKey<Item> MAGENTA_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.resource("magenta_printing_dyes"));
-            public static final TagKey<Item> YELLOW_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.resource("yellow_printing_dyes"));
-            public static final TagKey<Item> BLACK_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.resource("black_printing_dyes"));
-            public static final TagKey<Item> PHOTO_PAPERS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("photo_papers"));
-            public static final TagKey<Item> PHOTO_AGERS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("photo_agers"));
-            public static final TagKey<Item> FLASHES = TagKey.of(RegistryKeys.ITEM, Exposure.resource("flashes"));
-            public static final TagKey<Item> LENSES = TagKey.of(RegistryKeys.ITEM, Exposure.resource("lenses"));
-            public static final TagKey<Item> FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("filters"));
+            public static final TagKey<Item> FILM_ROLLS = TagKey.of(RegistryKeys.ITEM, Exposure.id("film_rolls"));
+            public static final TagKey<Item> DEVELOPED_FILM_ROLLS = TagKey.of(RegistryKeys.ITEM, Exposure.id("developed_film_rolls"));
+            public static final TagKey<Item> CYAN_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.id("cyan_printing_dyes"));
+            public static final TagKey<Item> MAGENTA_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.id("magenta_printing_dyes"));
+            public static final TagKey<Item> YELLOW_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.id("yellow_printing_dyes"));
+            public static final TagKey<Item> BLACK_PRINTING_DYES = TagKey.of(RegistryKeys.ITEM, Exposure.id("black_printing_dyes"));
+            public static final TagKey<Item> PHOTO_PAPERS = TagKey.of(RegistryKeys.ITEM, Exposure.id("photo_papers"));
+            public static final TagKey<Item> PHOTO_AGERS = TagKey.of(RegistryKeys.ITEM, Exposure.id("photo_agers"));
+            public static final TagKey<Item> FLASHES = TagKey.of(RegistryKeys.ITEM, Exposure.id("flashes"));
+            public static final TagKey<Item> LENSES = TagKey.of(RegistryKeys.ITEM, Exposure.id("lenses"));
+            public static final TagKey<Item> FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.id("filters"));
 
-            public static final TagKey<Item> RED_FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("red_filters"));
-            public static final TagKey<Item> GREEN_FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("green_filters"));
-            public static final TagKey<Item> BLUE_FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.resource("blue_filters"));
+            public static final TagKey<Item> RED_FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.id("red_filters"));
+            public static final TagKey<Item> GREEN_FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.id("green_filters"));
+            public static final TagKey<Item> BLUE_FILTERS = TagKey.of(RegistryKeys.ITEM, Exposure.id("blue_filters"));
         }
     }
 

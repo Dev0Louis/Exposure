@@ -10,7 +10,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record ExposeCommandS2CP(int size) implements IPacket {
-    public static final Identifier ID = Exposure.resource("expose_command");
+    public static final Identifier ID = Exposure.id("expose_command");
 
     @Override
     public Identifier getId() {

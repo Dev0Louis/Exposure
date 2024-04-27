@@ -20,7 +20,7 @@ public class ChromaticProcessToggleButton extends TexturedButtonWidget {
     }
 
     @Override
-    public void renderButton(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void renderWidget(DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
         Lightroom.Process currentProcess = processGetter.get();
         int xTex = currentProcess == Lightroom.Process.CHROMATIC ? 18 : 0;
 

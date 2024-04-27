@@ -10,7 +10,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record LoadExposureCommandS2CP(String id, String path, int size, boolean dither) implements IPacket {
-    public static final Identifier ID = Exposure.resource("load_exposure");
+    public static final Identifier ID = Exposure.id("load_exposure");
 
     @Override
     public Identifier getId() {

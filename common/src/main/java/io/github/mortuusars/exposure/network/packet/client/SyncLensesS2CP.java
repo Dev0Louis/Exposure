@@ -6,7 +6,7 @@ import io.github.mortuusars.exposure.network.PacketDirection;
 import io.github.mortuusars.exposure.network.handler.ClientPacketsHandler;
 import io.github.mortuusars.exposure.network.packet.IPacket;
 import org.jetbrains.annotations.Nullable;
-import java.util.Map.Entry;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import net.minecraft.entity.player.PlayerEntity;
@@ -15,7 +15,7 @@ import net.minecraft.recipe.Ingredient;
 import net.minecraft.util.Identifier;
 
 public record SyncLensesS2CP(ConcurrentMap<Ingredient, FocalRange> lenses) implements IPacket {
-    public static final Identifier ID = Exposure.resource("sync_lenses");
+    public static final Identifier ID = Exposure.id("sync_lenses");
 
     @Override
     public Identifier getId() {

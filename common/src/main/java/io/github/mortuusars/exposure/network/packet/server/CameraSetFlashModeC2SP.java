@@ -12,7 +12,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record CameraSetFlashModeC2SP(FlashMode flashMode) implements IPacket {
-    public static final Identifier ID = Exposure.resource("camera_set_flash_mode");
+    public static final Identifier ID = Exposure.id("camera_set_flash_mode");
 
     @Override
     public Identifier getId() {

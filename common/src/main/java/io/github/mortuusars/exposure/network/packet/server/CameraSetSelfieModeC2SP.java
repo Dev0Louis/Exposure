@@ -13,7 +13,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record CameraSetSelfieModeC2SP(Hand hand, boolean isInSelfieMode, boolean effects) implements IPacket {
-    public static final Identifier ID = Exposure.resource("camera_set_selfie_mode");
+    public static final Identifier ID = Exposure.id("camera_set_selfie_mode");
 
     @Override
     public Identifier getId() {

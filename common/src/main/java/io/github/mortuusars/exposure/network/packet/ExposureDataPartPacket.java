@@ -4,12 +4,13 @@ import io.github.mortuusars.exposure.Exposure;
 import io.github.mortuusars.exposure.network.PacketDirection;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtSizeTracker;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record ExposureDataPartPacket(String id, int width, int height, NbtCompound properties, int offset, byte[] partBytes) implements IPacket {
-    public static final Identifier ID = Exposure.resource("exposure_data_part");
+    public static final Identifier ID = Exposure.id("exposure_data_part");
 
     @Override
     public Identifier getId() {
@@ -28,7 +29,7 @@ public record ExposureDataPartPacket(String id, int width, int height, NbtCompou
 
     public static ExposureDataPartPacket fromBuffer(PacketByteBuf buffer) {
         return new ExposureDataPartPacket(buffer.readString(), buffer.readInt(), buffer.readInt(),
-                buffer.readUnlimitedNbt(), buffer.readInt(), buffer.readByteArray());
+                (NbtCompound) buffer.readNbt(NbtSizeTracker.ofUnlimitedBytes()), buffer.readInt(), buffer.readByteArray());
     }
 
     @Override

@@ -15,6 +15,7 @@ import io.github.mortuusars.exposure.render.PhotographRenderer;
 import io.github.mortuusars.exposure.util.ClientsideWorldNameGetter;
 import io.github.mortuusars.exposure.util.ItemAndStack;
 import io.github.mortuusars.exposure.util.PagingDirection;
+import net.minecraft.client.gui.screen.ButtonTextures;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +38,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class PhotographScreen extends ZoomableScreen {
-    public static final Identifier WIDGETS_TEXTURE = Exposure.resource("textures/gui/widgets.png");
+    public static final ButtonTextures WIDGETS_TEXTURE = new ButtonTextures(Exposure.id("textures/gui/widgets.png"), Exposure.id("textures/gui/widgets.png"));
 
     private final List<ItemAndStack<PhotographItem>> photographs;
     private final List<String> savedExposures = new ArrayList<>();
@@ -68,14 +69,10 @@ public class PhotographScreen extends ZoomableScreen {
         super.init();
         zoomFactor = (float) height / ExposureClient.getExposureRenderer().getSize();
 
-        TexturedButtonWidget previousButton = new TexturedButtonWidget(0, (int) (height / 2f - 16 / 2f), 16, 16,
-                0, 0, 16, WIDGETS_TEXTURE, 256, 256,
-                button -> pager.changePage(PagingDirection.PREVIOUS), Text.translatable("gui.exposure.previous_page"));
+        TexturedButtonWidget previousButton = new TexturedButtonWidget(0, (int) (height / 2f - 16 / 2f), 16, 16, WIDGETS_TEXTURE, button -> pager.changePage(PagingDirection.PREVIOUS), Text.translatable("gui.exposure.previous_page"));
         addDrawableChild(previousButton);
 
-        TexturedButtonWidget nextButton = new TexturedButtonWidget(width - 16, (int) (height / 2f - 16 / 2f), 16, 16,
-                16, 0, 16, WIDGETS_TEXTURE, 256, 256,
-                button -> pager.changePage(PagingDirection.NEXT), Text.translatable("gui.exposure.next_page"));
+        TexturedButtonWidget nextButton = new TexturedButtonWidget(width - 16, (int) (height / 2f - 16 / 2f), 16, 16, WIDGETS_TEXTURE, button -> pager.changePage(PagingDirection.NEXT), Text.translatable("gui.exposure.next_page"));
         addDrawableChild(nextButton);
 
         pager.init(photographs.size(), true, previousButton, nextButton);

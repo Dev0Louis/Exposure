@@ -11,7 +11,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record CameraSetZoomC2SP(double focalLength) implements IPacket {
-    public static final Identifier ID = Exposure.resource("camera_set_zoom");
+    public static final Identifier ID = Exposure.id("camera_set_zoom");
 
     @Override
     public Identifier getId() {

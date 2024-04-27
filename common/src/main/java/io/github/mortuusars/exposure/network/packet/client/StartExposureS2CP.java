@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 public record StartExposureS2CP(@NotNull String exposureId, @NotNull Hand activeHand,
                                 boolean flashHasFired, int lightLevel) implements IPacket {
-    public static final Identifier ID = Exposure.resource("start_exposure");
+    public static final Identifier ID = Exposure.id("start_exposure");
 
     @Override
     public Identifier getId() {

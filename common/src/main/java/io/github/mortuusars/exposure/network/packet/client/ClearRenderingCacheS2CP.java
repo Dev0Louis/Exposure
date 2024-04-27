@@ -10,7 +10,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public class ClearRenderingCacheS2CP implements IPacket {
-    public static final Identifier ID = Exposure.resource("clear_rendering_cache");
+    public static final Identifier ID = Exposure.id("clear_rendering_cache");
 
     @Override
     public Identifier getId() {

@@ -26,7 +26,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class NegativeExposureScreen extends ZoomableScreen {
-    public static final Identifier TEXTURE = Exposure.resource("textures/gui/film_frame_inspect.png");
+    public static final Identifier TEXTURE = Exposure.id("textures/gui/film_frame_inspect.png");
     public static final int BG_SIZE = 78;
     public static final int FRAME_SIZE = 54;
 
@@ -54,26 +54,24 @@ public class NegativeExposureScreen extends ZoomableScreen {
     protected void init() {
         super.init();
         zoomFactor = 1f / (client.options.getGuiScale().getValue() + 1);
-        TexturedButtonWidget previousButton = new TexturedButtonWidget(0, (int) (height / 2f - 16 / 2f), 16, 16,
-                0, 0, 16, PhotographScreen.WIDGETS_TEXTURE, 256, 256,
-                button -> pager.changePage(PagingDirection.PREVIOUS), Text.translatable("gui.exposure.previous_page"));
+
+        TexturedButtonWidget previousButton = new TexturedButtonWidget(0, (int) (height / 2f - 16 / 2f), 16, 16, PhotographScreen.WIDGETS_TEXTURE, button -> pager.changePage(PagingDirection.PREVIOUS), Text.translatable("gui.exposure.previous_page"));
+
         addDrawableChild(previousButton);
 
-        TexturedButtonWidget nextButton = new TexturedButtonWidget(width - 16, (int) (height / 2f - 16 / 2f), 16, 16,
-                16, 0, 16, PhotographScreen.WIDGETS_TEXTURE, 256, 256,
-                button -> pager.changePage(PagingDirection.NEXT), Text.translatable("gui.exposure.next_page"));
+        TexturedButtonWidget nextButton = new TexturedButtonWidget(width - 16, (int) (height / 2f - 16 / 2f), 16, 16, PhotographScreen.WIDGETS_TEXTURE, button -> pager.changePage(PagingDirection.NEXT), Text.translatable("gui.exposure.next_page"));
         addDrawableChild(nextButton);
 
         pager.init(exposures.size(), true, previousButton, nextButton);
     }
 
     @Override
-    public void render(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float delta) {
         pager.update();
 
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, delta);
 
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.render(guiGraphics, mouseX, mouseY, delta);
 
         Either<String, Identifier> idOrTexture = exposures.get(pager.getCurrentPage());
 

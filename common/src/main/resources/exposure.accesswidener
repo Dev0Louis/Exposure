@@ -7,6 +7,9 @@ accessible field net/minecraft/client/KeyMapping isDown Z
 
 accessible method net/minecraft/client/item/ModelPredicateProviderRegistry register (Lnet/minecraft/item/Item;Lnet/minecraft/util/Identifier;Lnet/minecraft/client/item/ClampedModelPredicateProvider;)V
 extendable method net/minecraft/entity/Entity setGlowing (Z)V
+accessible method net/minecraft/util/collection/DefaultedList <init> (Ljava/util/List;Ljava/lang/Object;)V
+accessible field net/minecraft/util/collection/DefaultedList initialElement Ljava/lang/Object;
+accessible field net/minecraft/util/collection/DefaultedList delegate Ljava/util/List;
 accessible method net/minecraft/client/MinecraftClient handleInputEvents ()V
 accessible method net/minecraft/client/gui/screens/MenuScreens register (Lnet/minecraft/world/inventory/MenuType;Lnet/minecraft/client/gui/screens/MenuScreens$ScreenConstructor;)V
 accessible class net/minecraft/client/gui/screens/MenuScreens$ScreenConstructor

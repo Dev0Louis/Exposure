@@ -34,8 +34,8 @@ public class FocalLengthButton extends TexturedButtonWidget implements IElementW
     }
 
     @Override
-    public void renderButton(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
+    public void renderWidget(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
 
         int focalLength = (int)Math.round(Fov.fovToFocalLength(ViewfinderClient.getCurrentFov()));
 

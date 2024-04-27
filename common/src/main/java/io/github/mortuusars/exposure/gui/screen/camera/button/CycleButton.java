@@ -20,8 +20,8 @@ public abstract class CycleButton extends TexturedButtonWidget implements IEleme
     }
 
     @Override
-    public void renderButton(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
+    public void renderWidget(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     @Override

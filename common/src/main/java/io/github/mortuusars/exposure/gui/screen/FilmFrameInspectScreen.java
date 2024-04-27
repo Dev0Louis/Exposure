@@ -21,8 +21,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class FilmFrameInspectScreen extends ZoomableScreen {
-    public static final Identifier TEXTURE = Exposure.resource("textures/gui/film_frame_inspect.png");
-    public static final Identifier WIDGETS_TEXTURE = Exposure.resource("textures/gui/widgets.png");
+    public static final Identifier TEXTURE = Exposure.id("textures/gui/film_frame_inspect.png");
+    public static final Identifier WIDGETS_TEXTURE = Exposure.id("textures/gui/widgets.png");
     public static final int BG_SIZE = 78;
     public static final int FRAME_SIZE = 54;
     public static final int BUTTON_SIZE = 16;

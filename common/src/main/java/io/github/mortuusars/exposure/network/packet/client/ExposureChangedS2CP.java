@@ -10,7 +10,7 @@ import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public record ExposureChangedS2CP(String exposureId) implements IPacket {
-    public static final Identifier ID = Exposure.resource("exposure_changed");
+    public static final Identifier ID = Exposure.id("exposure_changed");
 
     @Override
     public Identifier getId() {

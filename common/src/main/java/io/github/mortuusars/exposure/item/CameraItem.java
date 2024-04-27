@@ -405,7 +405,7 @@ public class CameraItem extends Item {
 
         level.setBlockState(flashPos, Exposure.Blocks.FLASH.get().getDefaultState()
                 .with(FlashBlock.WATERLOGGED, level.getFluidState(flashPos)
-                        .isEqualAndStill(Fluids.WATER)), Block.field_31022);
+                        .isEqualAndStill(Fluids.WATER)), Block.NOTIFY_ALL_AND_REDRAW);
         level.playSoundFromEntity(player, player, Exposure.SoundEvents.FLASH.get(), SoundCategory.PLAYERS, 1f, 1f);
 
         player.emitGameEvent(GameEvent.PRIME_FUSE);
@@ -439,7 +439,7 @@ public class CameraItem extends Item {
 
         tag.putString(FrameData.ID, exposureId);
         tag.putString(FrameData.TIMESTAMP, Util.getFormattedCurrentTime());
-        tag.putString(FrameData.PHOTOGRAPHER, player.getEntityName());
+        tag.putString(FrameData.PHOTOGRAPHER, player.getNameForScoreboard());
         tag.putUuid(FrameData.PHOTOGRAPHER_ID, player.getUuid());
 
         // Chromatic only for black and white:
@@ -529,7 +529,7 @@ public class CameraItem extends Item {
         tag.putFloat(FrameData.ENTITY_DISTANCE, photographer.distanceTo(entity));
 
         if (entity instanceof PlayerEntity player)
-            tag.putString(FrameData.ENTITY_PLAYER_NAME, player.getEntityName());
+            tag.putString(FrameData.ENTITY_PLAYER_NAME, player.getNameForScoreboard());
 
         return tag;
     }

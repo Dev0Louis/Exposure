@@ -47,7 +47,7 @@ public class AlbumPage {
             if (tag.contains(NOTE_TAG, NbtElement.STRING_TYPE))
                 note = tag.getString(NOTE_TAG);
             else if (tag.contains(NOTE_COMPONENT_TAG)) {
-                @Nullable MutableText component = Text.Serializer.fromJson(tag.getString(NOTE_COMPONENT_TAG));
+                @Nullable MutableText component = Text.Serialization.fromJson(tag.getString(NOTE_COMPONENT_TAG));
                 note = component != null ? component.asTruncatedString(512) : "";
             } else
                 note = "";
@@ -56,7 +56,7 @@ public class AlbumPage {
         } else {
             Text note;
             if (tag.contains(NOTE_COMPONENT_TAG, NbtElement.STRING_TYPE))
-                note = Text.Serializer.fromJson(tag.getString(NOTE_COMPONENT_TAG));
+                note = Text.Serialization.fromJson(tag.getString(NOTE_COMPONENT_TAG));
             else if (tag.contains(NOTE_TAG))
                 note = Text.literal(tag.getString(NOTE_TAG));
             else
@@ -71,7 +71,7 @@ public class AlbumPage {
             tag.put(PHOTOGRAPH_TAG, photographStack.writeNbt(new NbtCompound()));
 
         note.ifLeft(string -> { if (!string.isEmpty()) tag.putString(NOTE_TAG, string);})
-            .ifRight(component -> tag.putString(NOTE_COMPONENT_TAG, Text.Serializer.toJson(component)));
+            .ifRight(component -> tag.putString(NOTE_COMPONENT_TAG, Text.Serialization.toJsonString(component)));
 
         return tag;
     }

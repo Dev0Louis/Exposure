@@ -52,11 +52,11 @@ public class FlashModeButton extends CycleButton {
     }
 
     @Override
-    public void renderButton(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
+    public void renderWidget(@NotNull DrawContext guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
 
         // Icon
-        guiGraphics.drawTexture(Exposure.resource("textures/gui/viewfinder/icon/flash_mode/" + flashModes.get(currentIndex).getId() + ".png"),
+        guiGraphics.drawTexture(Exposure.id("textures/gui/viewfinder/icon/flash_mode/" + flashModes.get(currentIndex).getId() + ".png"),
                 getX(), getY() + 4, 0, 0, 0, 15, 14, 15, 14);
     }
 
