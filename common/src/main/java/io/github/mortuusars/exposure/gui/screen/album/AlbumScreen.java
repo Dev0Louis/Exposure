@@ -17,6 +17,7 @@ import io.github.mortuusars.exposure.network.packet.server.AlbumSyncNoteC2SP;
 import io.github.mortuusars.exposure.util.ItemAndStack;
 import io.github.mortuusars.exposure.util.PagingDirection;
 import io.github.mortuusars.exposure.util.Side;
+import net.minecraft.client.gui.screen.ButtonTextures;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,6 +51,7 @@ import net.minecraft.util.Identifier;
 
 public class AlbumScreen extends HandledScreen<AlbumMenu> {
     public static final Identifier TEXTURE = Exposure.id("textures/gui/album.png");
+    public static final ButtonTextures BUTTON_TEXTURES = new ButtonTextures(TEXTURE, TEXTURE);
     public static final int MAIN_FONT_COLOR = 0xFFB59774;
     public static final int SECONDARY_FONT_COLOR = 0xFFEFE4CA;
     public static final int SELECTION_COLOR = 0xFF8888FF;
@@ -142,7 +144,7 @@ public class AlbumScreen extends HandledScreen<AlbumMenu> {
         Rect2i note = new Rect2i(x1 + 22, y1 + 133, 114, 27);
 
         PhotographSlotButton photographButton = new PhotographSlotButton(exposure, photo.getX(), photo.getY(),
-                photo.getWidth(), photo.getHeight(), 0, 188, 108, TEXTURE, 512, 512,
+                photo.getWidth(), photo.getHeight(), 0, 188, 108, BUTTON_TEXTURES, 512, 512,
                 b -> {
                     PhotographSlotButton button = (PhotographSlotButton) b;
                     ItemStack photograph = button.getPhotograph();

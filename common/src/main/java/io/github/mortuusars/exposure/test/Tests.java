@@ -2,7 +2,6 @@ package io.github.mortuusars.exposure.test;
 
 import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
-import io.github.mortuusars.exposure.test.data.ExposurePredicateTests;
 import io.github.mortuusars.exposure.test.framework.Test;
 import io.github.mortuusars.exposure.test.framework.TestResult;
 import io.github.mortuusars.exposure.test.framework.TestingResult;

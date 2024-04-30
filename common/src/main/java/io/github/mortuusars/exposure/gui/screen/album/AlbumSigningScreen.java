@@ -4,6 +4,7 @@ import io.github.mortuusars.exposure.gui.screen.element.textbox.HorizontalAlignm
 import io.github.mortuusars.exposure.gui.screen.element.textbox.TextBox;
 import io.github.mortuusars.exposure.network.Packets;
 import io.github.mortuusars.exposure.network.packet.server.AlbumSignC2SP;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -32,8 +33,8 @@ public class AlbumSigningScreen extends Screen {
     protected int imageWidth, imageHeight, leftPos, topPos, textureWidth, textureHeight;
 
     protected TextBox titleTextBox;
-    protected TexturedButtonWidget signButton;
-    protected TexturedButtonWidget cancelSigningButton;
+    protected ButtonWidget signButton;
+    protected ButtonWidget cancelSigningButton;
 
     protected String titleText = "";
 
@@ -65,18 +66,23 @@ public class AlbumSigningScreen extends Screen {
         addDrawableChild(titleTextBox);
 
         // SIGN
-        signButton = new TexturedButtonWidget(leftPos + 46, topPos + 110, 22, 22, 242, 188,
-                22, texture, textureWidth, textureHeight,
-                b -> signAlbum(), Text.translatable("gui.exposure.album.sign"));
+        signButton = TexturedButtonWidget.builder(Text.translatable("gui.exposure.album.sign"), b -> signAlbum())
+                .dimensions(leftPos + 46, topPos + 110, 22, 22)
+                .position(242, 188)
+                .build();
         MutableText component = Text.translatable("gui.exposure.album.sign")
                 .append("\n").append(Text.translatable("gui.exposure.album.sign.warning").formatted(Formatting.GRAY));
         signButton.setTooltip(Tooltip.of(component));
         addDrawableChild(signButton);
 
         // CANCEL
-        cancelSigningButton = new TexturedButtonWidget(leftPos + 83, topPos + 111, 22, 22, 264, 188,
+        /*cancelSigningButton = new TexturedButtonWidget(leftPos + 83, topPos + 111, 22, 22, 264, 188,
                 22, texture, textureWidth, textureHeight,
-                b -> cancelSigning(), Text.translatable("gui.exposure.album.cancel_signing"));
+                b -> cancelSigning(), Text.translatable("gui.exposure.album.cancel_signing"));*/
+        cancelSigningButton = TexturedButtonWidget.builder(Text.translatable("gui.exposure.album.cancel_signing"), b -> cancelSigning())
+                .dimensions(leftPos + 83, topPos + 11, 22, 22)
+                .position(264, 188)
+                .build();
         cancelSigningButton.setTooltip(Tooltip.of(Text.translatable("gui.exposure.album.cancel_signing")));
         addDrawableChild(cancelSigningButton);
 

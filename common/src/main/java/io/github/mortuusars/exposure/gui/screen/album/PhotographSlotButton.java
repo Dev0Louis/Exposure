@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ButtonTextures;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TexturedButtonWidget;
 import net.minecraft.client.input.KeyCodes;
@@ -20,7 +21,6 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.Rect2i;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class PhotographSlotButton extends TexturedButtonWidget {
 
@@ -31,10 +31,9 @@ public class PhotographSlotButton extends TexturedButtonWidget {
     protected boolean hasPhotograph;
 
     public PhotographSlotButton(Rect2i exposureArea, int x, int y, int width, int height, int xTexStart, int yTexStart,
-                                int yDiffTex, Identifier resourceLocation, int textureWidth, int textureHeight,
+                                int yDiffTex, ButtonTextures buttonTextures, int textureWidth, int textureHeight,
                                 PressAction onLeftButtonPress, PressAction onRightButtonPress, Supplier<ItemStack> photographGetter, boolean isEditable) {
-        super(x, y, width, height, xTexStart, yTexStart, yDiffTex, resourceLocation, textureWidth, textureHeight, onLeftButtonPress,
-                Text.translatable("item.exposure.photograph"));
+        super(x, y, width, height, buttonTextures, onLeftButtonPress, Text.translatable("item.exposure.photograph"));
         this.exposureArea = exposureArea;
         this.onRightButtonPress = onRightButtonPress;
         this.photograph = photographGetter;
@@ -128,14 +127,15 @@ public class PhotographSlotButton extends TexturedButtonWidget {
         return true;
     }
 
+
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (delta > 0 && clicked(mouseX, mouseY) && hasPhotograph) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (horizontalAmount > 0 && clicked(mouseX, mouseY) && hasPhotograph) {
             this.onPress.onPress(this);
             return true;
         }
 
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override
